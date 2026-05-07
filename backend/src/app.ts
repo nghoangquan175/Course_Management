@@ -1,0 +1,60 @@
+import express, { Application, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import dotenv from 'dotenv';
+
+import authRoutes from './routes/authRoutes';
+import cloudinaryRoutes from './routes/cloudinaryRoutes';
+import categoryRoutes from './routes/categoryRoutes';
+import courseRoutes from './routes/courseRoutes';
+import lessonRoutes from './routes/lessonRoutes';
+import examRoutes from './routes/examRoutes';
+import progressRoutes from './routes/progressRoutes';
+import certificateRoutes from './routes/certificateRoutes';
+import reviewRoutes from './routes/reviewRoutes';
+import instructorApplicationRoutes from './routes/instructorApplicationRoutes';
+
+dotenv.config();
+
+const app: Application = express();
+
+app.set('trust proxy', 1);
+
+// Middlewares
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:5174', process.env.CLIENT_URL].filter(Boolean) as string[],
+    credentials: true
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/cloudinary', cloudinaryRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/lessons', lessonRoutes);
+app.use('/api/exams', examRoutes);
+app.use('/api/progress', progressRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/instructor-applications', instructorApplicationRoutes);
+
+// Basic Route
+app.get('/', (req: Request, res: Response) => {
+    res.json({ message: 'Welcome to Course Management API' });
+});
+
+// Error handling middleware
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    const status = err.status || 500;
+    const message = err.message || 'Something went wrong';
+    res.status(status).json({
+        success: false,
+        status,
+        message
+    });
+});
+
+export default app;
