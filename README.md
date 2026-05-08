@@ -14,4 +14,4 @@ A full-stack LMS built with React, Node.js, and MySQL.
 - Frontend: React, Vite, TailwindCSS
 - Backend: Express, Sequelize
 - Database: MySQL
-- DevOps: Husky, lint-staged, Prettier, ESLint
+- DevOps: Docker, Azure

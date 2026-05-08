@@ -12,7 +12,8 @@
     "migrate:generate": "npx sequelize-cli migration:generate",
     "seed": "npx sequelize-cli db:seed:all",
     "seed:undo": "npx sequelize-cli db:seed:undo:all",
-    "seed:generate": "npx sequelize-cli seed:generate"
+    "seed:generate": "npx sequelize-cli seed:generate",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
@@ -33,6 +34,7 @@
     "nodemailer": "^8.0.7",
     "puppeteer": "^24.43.0",
     "sequelize": "^6.37.8",
+    "socket.io": "^4.8.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {

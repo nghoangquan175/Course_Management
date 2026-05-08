@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  LayoutDashboard,
-  BookOpen,
-  Users,
-  BarChart3,
-  MessageSquare
-} from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, BarChart3, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../../components/common/Modal';
@@ -18,21 +12,28 @@ import { UserManagement } from '../../components/dashboard/UserManagement';
 import { FullscreenLoader } from '../../components/common/FullscreenLoader';
 import { AnimatePresence } from 'framer-motion';
 
+import { useSearchParams } from 'react-router-dom';
 import { useCourses } from '../../hooks/useCourseQueries';
 
 export const InstructorDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+
+  // Initialize active tab from URL params to avoid cascading renders in useEffect
+  const [activeTab, setActiveTab] = useState(() => {
+    const view = new URLSearchParams(window.location.search).get('view');
+    const courseId = new URLSearchParams(window.location.search).get('courseId');
+    if (view === 'detail' && courseId) return 'courses';
+    return 'overview';
+  });
+
   const [subView, setSubView] = useState('list');
   const [currentStatus, setCurrentStatus] = useState<string | undefined>(undefined);
 
-  const {
-    data: courses = [],
-    isLoading: isLoadingCourses
-  } = useCourses({ status: currentStatus });
+  const { data: courses = [], isLoading: isLoadingCourses } = useCourses({ status: currentStatus });
 
   const sidebarItems: SidebarItem[] = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" /> },
@@ -45,7 +46,7 @@ export const InstructorDashboard: React.FC = () => {
     setIsLoggingOut(true);
 
     // Simulate a smooth transition delay
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    await new Promise((resolve) => setTimeout(resolve, 1200));
 
     logout();
     navigate('/login');
@@ -76,6 +77,8 @@ export const InstructorDashboard: React.FC = () => {
             isLoading={isLoadingCourses}
             onViewChange={setSubView}
             currentUserId={user?.id}
+            initialView={searchParams.get('view') as any}
+            initialCourseId={searchParams.get('courseId') || undefined}
           />
         );
       case 'students':
@@ -105,15 +108,22 @@ export const InstructorDashboard: React.FC = () => {
                 <h3 className="text-lg font-bold mb-4 shrink-0">Student Reviews</h3>
                 <div className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-white/10">
                   {[1, 2, 3, 4, 5].map((_, i) => (
-                    <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                    <div
+                      key={i}
+                      className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-colors"
+                    >
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold border border-white/10">JD</div>
+                        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold border border-white/10">
+                          JD
+                        </div>
                         <div>
                           <p className="text-xs font-bold">John Doe</p>
                           <p className="text-[10px] text-slate-500">2 hours ago</p>
                         </div>
                       </div>
-                      <p className="text-[11px] text-slate-300 leading-relaxed italic">"Great course! The explanations are very clear and easy to follow."</p>
+                      <p className="text-[11px] text-slate-300 leading-relaxed italic">
+                        "Great course! The explanations are very clear and easy to follow."
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -144,9 +154,7 @@ export const InstructorDashboard: React.FC = () => {
           <DashboardHeader placeholder="Search in your courses..." />
         )}
 
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {renderContent()}
-        </div>
+        <div className="flex-1 overflow-hidden flex flex-col">{renderContent()}</div>
       </main>
 
       <Modal
@@ -155,8 +163,18 @@ export const InstructorDashboard: React.FC = () => {
         title="Confirm Logout"
         footer={
           <>
-            <button onClick={() => setIsLogoutModalOpen(false)} className="px-6 py-2 text-sm text-slate-400">Cancel</button>
-            <button onClick={handleConfirmLogout} className="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-bold">Logout</button>
+            <button
+              onClick={() => setIsLogoutModalOpen(false)}
+              className="px-6 py-2 text-sm text-slate-400"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmLogout}
+              className="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-bold"
+            >
+              Logout
+            </button>
           </>
         }
       >

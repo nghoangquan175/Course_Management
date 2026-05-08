@@ -36,9 +36,7 @@ function AppContent() {
           COURSE EDU
         </h1>
         <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
-        <p className="text-slate-400 mb-2">
-          Initializing Management System...
-        </p>
+        <p className="text-slate-400 mb-2">Initializing Management System...</p>
         {showSlowConnection && (
           <p className="text-amber-500 animate-in fade-in duration-500">
             Connection is slower than expected. Please check your network.
@@ -65,11 +63,15 @@ function AppContent() {
   );
 }
 
+import { SocketProvider } from './contexts/SocketContext';
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AppContent />
+        <SocketProvider>
+          <AppContent />
+        </SocketProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

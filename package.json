@@ -3,31 +3,37 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write .",
-    "lint": "npm run lint:fe && npm run lint:be",
-    "lint:fe": "npm --prefix frontend run lint",
-    "lint:be": "eslint backend/src --ext .ts",
+    "lint": "eslint . --quiet",
+    "lint:fe": "eslint frontend/src --quiet",
+    "lint:be": "eslint backend/src --quiet",
     "prepare": "husky"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@typescript-eslint/eslint-plugin": "^8.59.2",
     "@typescript-eslint/parser": "^8.59.2",
     "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.4.3",
-    "prettier": "^3.8.3"
+    "prettier": "^3.8.3",
+    "typescript-eslint": "^8.59.2"
   },
   "lint-staged": {
     "frontend/src/**/*.{ts,tsx}": [
-      "eslint --fix"
+      "eslint --fix --quiet"
     ],
     "backend/src/**/*.ts": [
-      "eslint --fix"
+      "eslint --fix --quiet"
     ],
     "**/*.{js,jsx,ts,tsx,json,css,md}": [
       "prettier --write"

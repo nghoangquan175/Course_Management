@@ -19,5 +19,10 @@ export const examService = {
   getResultById: async (resultId: string) => {
     const response = await api.get(`/exams/result/${resultId}`);
     return response.data;
-  }
+  },
+
+  upsertExam: async (data: any) => {
+    const response = await api.post('/exams/upsert', data);
+    return response.data;
+  },
 };

@@ -14,7 +14,7 @@ import {
   Star,
   Download,
   Info,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react';
 import Hls from 'hls.js';
 import { courseService } from '../../api/courseService';
@@ -58,11 +58,11 @@ export const LearningPlayer: React.FC = () => {
       try {
         if (!id) return;
         setIsLoading(true);
-        
+
         // 1. Fetch Outline and Progress in parallel
         const [courseData, progressData] = await Promise.all([
           courseService.getById(id, 'outline'),
-          progressService.getCourseProgress(id)
+          progressService.getCourseProgress(id),
         ]);
 
         // Sort lessons by order
@@ -90,7 +90,9 @@ export const LearningPlayer: React.FC = () => {
             try {
               const cert = await certificateService.getCertificate(id);
               setCertificate(cert);
-            } catch (e) { /* ignore */ }
+            } catch (e) {
+              /* ignore */
+            }
           }
         }
 
@@ -110,7 +112,7 @@ export const LearningPlayer: React.FC = () => {
         const lessonIdx = courseData.lessons.findIndex((l: any) => l.id === initialLessonId);
         if (lessonIdx !== -1) {
           setCurrentLessonIdx(lessonIdx);
-          
+
           // 2. Fetch Initial Lesson Detail IMMEDIATELY to show video faster
           setIsLessonLoading(true);
           try {
@@ -122,7 +124,6 @@ export const LearningPlayer: React.FC = () => {
             setIsLessonLoading(false);
           }
         }
-
       } catch (error) {
         toast.error('Failed to load course content');
         navigate('/');
@@ -143,7 +144,7 @@ export const LearningPlayer: React.FC = () => {
 
     const fetchLessonDetail = async () => {
       if (!course?.lessons?.[currentLessonIdx]) return;
-      
+
       const lessonId = course.lessons[currentLessonIdx].id;
       setIsLessonLoading(true);
       try {
@@ -175,12 +176,12 @@ export const LearningPlayer: React.FC = () => {
         hls.loadSource(hlsUrl);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(e => console.log("Autoplay prevented:", e));
+          video.play().catch((e) => console.log('Autoplay prevented:', e));
         });
         hlsRef.current = hls;
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = hlsUrl;
-        video.play().catch(e => console.log("Autoplay prevented:", e));
+        video.play().catch((e) => console.log('Autoplay prevented:', e));
       }
     }
 
@@ -193,13 +194,6 @@ export const LearningPlayer: React.FC = () => {
     };
   }, [currentLesson]);
 
-  // Handle Rich Text lessons - auto complete video part
-  useEffect(() => {
-    if (activeLesson && !activeLesson.videoUrl && !videoCompletedLessons.has(activeLesson.id)) {
-      syncProgress(true);
-    }
-  }, [activeLesson, videoCompletedLessons]);
-
   const handleLoadedMetadata = () => {
     if (videoRef.current && lastTime > 0 && !isResumed) {
       videoRef.current.currentTime = lastTime;
@@ -207,37 +201,49 @@ export const LearningPlayer: React.FC = () => {
     }
   };
 
-  const syncProgress = async (isVideoDone = false) => {
-    if (!videoRef.current && !isVideoDone && currentLesson?.videoUrl) return;
-    if (!currentLesson || !id) return;
+  const syncProgress = React.useCallback(
+    async (isVideoDone = false) => {
+      if (!videoRef.current && !isVideoDone && currentLesson?.videoUrl) return;
+      if (!currentLesson || !id) return;
 
-    try {
-      const res = await progressService.updateProgress({
-        courseId: id,
-        lessonId: currentLesson.id,
-        lastWatchedSecond: videoRef.current ? Math.floor(videoRef.current.currentTime) : undefined,
-        isVideoCompleted: isVideoDone
-      });
+      try {
+        const res = await progressService.updateProgress({
+          courseId: id,
+          lessonId: currentLesson.id,
+          lastWatchedSecond: videoRef.current
+            ? Math.floor(videoRef.current.currentTime)
+            : undefined,
+          isVideoCompleted: isVideoDone,
+        });
 
-      if (res.courseProgress !== undefined) {
-        setCurrentProgress(res.courseProgress);
+        if (res.courseProgress !== undefined) {
+          setCurrentProgress(res.courseProgress);
+        }
+
+        if (isVideoDone) {
+          const newVideoCompleted = new Set(videoCompletedLessons);
+          newVideoCompleted.add(currentLesson.id);
+          setVideoCompletedLessons(newVideoCompleted);
+        }
+
+        if (res.status === 'COMPLETED') {
+          const newCompleted = new Set(completedLessons);
+          newCompleted.add(currentLesson.id);
+          setCompletedLessons(newCompleted);
+        }
+      } catch (error) {
+        console.error('Failed to sync progress:', error);
       }
+    },
+    [id, currentLesson, videoRef, videoCompletedLessons, completedLessons]
+  );
 
-      if (isVideoDone) {
-        const newVideoCompleted = new Set(videoCompletedLessons);
-        newVideoCompleted.add(currentLesson.id);
-        setVideoCompletedLessons(newVideoCompleted);
-      }
-
-      if (res.status === 'COMPLETED') {
-        const newCompleted = new Set(completedLessons);
-        newCompleted.add(currentLesson.id);
-        setCompletedLessons(newCompleted);
-      }
-    } catch (error) {
-      console.error('Failed to sync progress:', error);
+  // Handle Rich Text lessons - auto complete video part
+  useEffect(() => {
+    if (activeLesson && !activeLesson.videoUrl && !videoCompletedLessons.has(activeLesson.id)) {
+      syncProgress(true);
     }
-  };
+  }, [activeLesson, videoCompletedLessons, syncProgress]);
 
   const handleTimeUpdate = () => {
     if (!videoRef.current || !currentLesson) return;
@@ -260,14 +266,14 @@ export const LearningPlayer: React.FC = () => {
 
   const nextLesson = () => {
     if (currentLessonIdx < (course?.lessons?.length || 0) - 1) {
-      setCurrentLessonIdx(prev => prev + 1);
+      setCurrentLessonIdx((prev) => prev + 1);
       setShowRatingBtn(false);
     }
   };
 
   const prevLesson = () => {
     if (currentLessonIdx > 0) {
-      setCurrentLessonIdx(prev => prev - 1);
+      setCurrentLessonIdx((prev) => prev - 1);
       setShowRatingBtn(false);
     }
   };
@@ -292,7 +298,10 @@ export const LearningPlayer: React.FC = () => {
       toast.success('Certificate generated successfully!');
       window.open(newCert.pdfUrl, '_blank');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to generate certificate. Ensure all quizzes are passed.');
+      toast.error(
+        error.response?.data?.message ||
+          'Failed to generate certificate. Ensure all quizzes are passed.'
+      );
     } finally {
       setIsGeneratingCert(false);
     }
@@ -302,9 +311,13 @@ export const LearningPlayer: React.FC = () => {
   if (!course) return null;
 
   return (
-    <div className={`flex flex-col h-screen ${isDarkMode ? 'bg-slate-950 text-slate-50' : 'bg-slate-50 text-slate-900'} overflow-hidden transition-colors duration-300`}>
+    <div
+      className={`flex flex-col h-screen ${isDarkMode ? 'bg-slate-950 text-slate-50' : 'bg-slate-50 text-slate-900'} overflow-hidden transition-colors duration-300`}
+    >
       {/* Top Bar */}
-      <header className={`h-16 shrink-0 flex items-center justify-between px-6 border-b ${isDarkMode ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-white shadow-sm'} z-20`}>
+      <header
+        className={`h-16 shrink-0 flex items-center justify-between px-6 border-b ${isDarkMode ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-white shadow-sm'} z-20`}
+      >
         <div className="flex items-center gap-4">
           <Link to="/dashboard" className="p-2 hover:bg-white/10 rounded-full transition-colors">
             <ChevronLeft className="w-6 h-6" />
@@ -330,7 +343,9 @@ export const LearningPlayer: React.FC = () => {
                 style={{ width: `${progressPercentage}%` }}
               ></div>
             </div>
-            <span className="text-xs font-bold text-slate-500">{progressPercentage}% completed</span>
+            <span className="text-xs font-bold text-slate-500">
+              {progressPercentage}% completed
+            </span>
           </div>
 
           <button
@@ -393,17 +408,20 @@ export const LearningPlayer: React.FC = () => {
                         onClick={() => {
                           navigate(`/exam/${activeLesson.id}`, {
                             state: {
-                              completedLessonIds: Array.from(completedLessons)
-                            }
+                              completedLessonIds: Array.from(completedLessons),
+                            },
                           });
                         }}
                         className={`px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${videoCompletedLessons.has(activeLesson.id) ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 hover:scale-105' : 'bg-white/5 text-slate-500 cursor-not-allowed opacity-50'}`}
                         disabled={!videoCompletedLessons.has(activeLesson.id)}
                       >
-                        <ExternalLink className="w-3 h-3" /> {currentLesson.highestScore !== null ? 'RETAKE QUIZ' : 'TAKE QUIZ'}
+                        <ExternalLink className="w-3 h-3" />{' '}
+                        {currentLesson.highestScore !== null ? 'RETAKE QUIZ' : 'TAKE QUIZ'}
                       </button>
                       {currentLesson.highestScore !== null && (
-                        <p className={`text-[10px] font-bold text-center ${currentLesson.highestScore >= (activeLesson.exam?.passingScore || 50) ? 'text-green-500' : 'text-red-500'}`}>
+                        <p
+                          className={`text-[10px] font-bold text-center ${currentLesson.highestScore >= (activeLesson.exam?.passingScore || 50) ? 'text-green-500' : 'text-red-500'}`}
+                        >
                           Highest Score: {currentLesson.highestScore}%
                         </p>
                       )}
@@ -461,7 +479,12 @@ export const LearningPlayer: React.FC = () => {
                   <h3 className="text-xl font-bold mb-4">{currentLesson?.title}</h3>
                   <div
                     className="text-slate-400 leading-relaxed space-y-4"
-                    dangerouslySetInnerHTML={{ __html: activeLesson?.content || activeLesson?.textContent || 'No detailed content for this lesson yet.' }}
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        activeLesson?.content ||
+                        activeLesson?.textContent ||
+                        'No detailed content for this lesson yet.',
+                    }}
                   />
                 </div>
               )}
@@ -486,7 +509,9 @@ export const LearningPlayer: React.FC = () => {
                               <FileText className="w-5 h-5" />
                             </div>
                             <div>
-                              <p className="text-sm font-bold truncate max-w-[150px]">{file.name || 'Document'}</p>
+                              <p className="text-sm font-bold truncate max-w-[150px]">
+                                {file.name || 'Document'}
+                              </p>
                               <p className="text-[10px] text-slate-500">PDF • Attachment</p>
                             </div>
                           </div>
@@ -495,7 +520,9 @@ export const LearningPlayer: React.FC = () => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-slate-500 italic text-center">No documents available for this lesson.</p>
+                    <p className="text-slate-500 italic text-center">
+                      No documents available for this lesson.
+                    </p>
                   )}
                 </div>
               )}
@@ -511,7 +538,9 @@ export const LearningPlayer: React.FC = () => {
         </main>
 
         {/* Sidebar - Playlist */}
-        <aside className={`${isSidebarOpen ? 'w-80 lg:w-96' : 'w-0'} shrink-0 border-l ${isDarkMode ? 'border-white/10 bg-slate-900/30' : 'border-slate-200 bg-slate-50'} flex flex-col transition-all duration-300 overflow-hidden relative`}>
+        <aside
+          className={`${isSidebarOpen ? 'w-80 lg:w-96' : 'w-0'} shrink-0 border-l ${isDarkMode ? 'border-white/10 bg-slate-900/30' : 'border-slate-200 bg-slate-50'} flex flex-col transition-all duration-300 overflow-hidden relative`}
+        >
           <div className="p-6 border-b border-white/10 shrink-0">
             <h3 className="font-bold flex items-center gap-2">
               <Info className="w-4 h-4 text-indigo-400" /> Course Content
@@ -522,7 +551,10 @@ export const LearningPlayer: React.FC = () => {
             {course.lessons?.map((lesson: any, index: number) => (
               <button
                 key={lesson.id}
-                onClick={() => { setCurrentLessonIdx(index); setShowRatingBtn(false); }}
+                onClick={() => {
+                  setCurrentLessonIdx(index);
+                  setShowRatingBtn(false);
+                }}
                 className={`w-full flex items-center gap-4 p-5 text-left border-b border-white/5 transition-all ${currentLessonIdx === index ? 'bg-indigo-500/10 border-l-4 border-l-indigo-500' : 'hover:bg-white/5'}`}
               >
                 <div className="shrink-0">
@@ -531,15 +563,22 @@ export const LearningPlayer: React.FC = () => {
                       <CheckCircle className="w-4 h-4" />
                     </div>
                   ) : (
-                    <div className={`w-6 h-6 rounded-full border-2 ${currentLessonIdx === index ? 'border-indigo-500 text-indigo-500' : 'border-slate-700 text-slate-700'} flex items-center justify-center text-[10px] font-bold`}>
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 ${currentLessonIdx === index ? 'border-indigo-500 text-indigo-500' : 'border-slate-700 text-slate-700'} flex items-center justify-center text-[10px] font-bold`}
+                    >
                       {index + 1}
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-bold truncate ${currentLessonIdx === index ? 'text-indigo-400' : ''}`}>{lesson.title}</p>
+                  <p
+                    className={`text-sm font-bold truncate ${currentLessonIdx === index ? 'text-indigo-400' : ''}`}
+                  >
+                    {lesson.title}
+                  </p>
                   <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
-                    <PlayCircle className="w-3 h-3" /> {lesson.videoDuration ? Math.round(lesson.videoDuration / 60) : 5} min
+                    <PlayCircle className="w-3 h-3" />{' '}
+                    {lesson.videoDuration ? Math.round(lesson.videoDuration / 60) : 5} min
                   </p>
                 </div>
               </button>
@@ -554,15 +593,10 @@ export const LearningPlayer: React.FC = () => {
                   if (certificate) handleGetCertificate();
                   else setShowCertConfirmModal(true);
                 }}
-                disabled={isGeneratingCert}
-                className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm transition-all shadow-xl ${isGeneratingCert ? 'bg-slate-700 cursor-wait' : 'bg-amber-500 hover:bg-amber-400 text-white shadow-amber-500/20'}`}
+                className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm transition-all shadow-xl ${certificate ? 'bg-indigo-500 hover:bg-indigo-400 text-white shadow-indigo-500/20' : 'bg-amber-500 hover:bg-amber-400 text-white shadow-amber-500/20'}`}
               >
-                {isGeneratingCert ? (
-                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                ) : (
-                  <Award className="w-5 h-5" />
-                )}
-                {isGeneratingCert ? 'GENERATING...' : certificate ? 'VIEW CERTIFICATE' : 'GET CERTIFICATE'}
+                <Award className="w-5 h-5" />
+                {certificate ? 'VIEW CERTIFICATE' : 'GET CERTIFICATE'}
               </button>
             </div>
           )}
@@ -579,7 +613,7 @@ export const LearningPlayer: React.FC = () => {
             thumbnailUrl: course.thumbnailUrl,
             instructorName: course.instructor?.name,
             totalStudents: course.totalStudents,
-            averageRating: course.averageRating
+            averageRating: course.rating,
           }}
         />
       )}
@@ -587,16 +621,21 @@ export const LearningPlayer: React.FC = () => {
       {/* Certificate Confirmation Modal */}
       {showCertConfirmModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowCertConfirmModal(false)}></div>
+          <div
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            onClick={() => setShowCertConfirmModal(false)}
+          ></div>
           <div className="relative bg-slate-900 border border-white/10 rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl animate-in zoom-in duration-300">
             <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mb-8 mx-auto">
               <Award className="w-10 h-10 text-indigo-400" />
             </div>
-            
+
             <div className="text-center mb-10">
               <h3 className="text-3xl font-black mb-4">Claim Your Reward!</h3>
               <p className="text-slate-400 leading-relaxed">
-                Congratulations! You've successfully completed all requirements for <span className="text-white font-bold">{course?.name}</span>. Are you ready to generate your official certificate?
+                Congratulations! You've successfully completed all requirements for{' '}
+                <span className="text-white font-bold">{course?.name}</span>. Are you ready to
+                generate your official certificate?
               </p>
             </div>
 
@@ -608,9 +647,9 @@ export const LearningPlayer: React.FC = () => {
                 Not yet
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
+                  await handleGetCertificate();
                   setShowCertConfirmModal(false);
-                  handleGetCertificate();
                 }}
                 disabled={isGeneratingCert}
                 className="py-4 px-6 bg-indigo-500 hover:bg-indigo-400 text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center gap-2"
@@ -618,7 +657,9 @@ export const LearningPlayer: React.FC = () => {
                 {isGeneratingCert ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 ) : (
-                  <>Generate <ChevronRight className="w-4 h-4" /></>
+                  <>
+                    Generate <ChevronRight className="w-4 h-4" />
+                  </>
                 )}
               </button>
             </div>

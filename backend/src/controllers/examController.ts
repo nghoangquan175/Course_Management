@@ -16,9 +16,9 @@ export const getLessonExam = async (req: Request, res: Response, next: NextFunct
       where: { lessonId },
       include: [
         { model: Question, as: 'questions' },
-        { model: Lesson, as: 'lesson' }
+        { model: Lesson, as: 'lesson' },
       ],
-      order: [[{ model: Question, as: 'questions' }, 'order', 'ASC']]
+      order: [[{ model: Question, as: 'questions' }, 'order', 'ASC']],
     });
     res.status(200).json(exam);
   } catch (error) {
@@ -33,7 +33,7 @@ export const upsertExam = async (req: Request, res: Response, next: NextFunction
 
     // Check ownership of the course/lesson
     const lesson = await Lesson.findByPk(lessonId as string, {
-      include: [{ model: Course, as: 'course' }]
+      include: [{ model: Course, as: 'course' }],
     });
 
     if (!lesson || !lesson.course) {
@@ -48,20 +48,26 @@ export const upsertExam = async (req: Request, res: Response, next: NextFunction
     let exam = await Exam.findOne({ where: { lessonId }, transaction });
 
     if (!exam) {
-      exam = await Exam.create({
-        lessonId,
-        title,
-        description,
-        passingScore,
-        timeLimit
-      }, { transaction });
+      exam = await Exam.create(
+        {
+          lessonId,
+          title,
+          description,
+          passingScore,
+          timeLimit,
+        },
+        { transaction }
+      );
     } else {
-      await exam.update({
-        title,
-        description,
-        passingScore,
-        timeLimit
-      }, { transaction });
+      await exam.update(
+        {
+          title,
+          description,
+          passingScore,
+          timeLimit,
+        },
+        { transaction }
+      );
     }
 
     // 2. Handle Questions
@@ -70,18 +76,21 @@ export const upsertExam = async (req: Request, res: Response, next: NextFunction
     if (questions && Array.isArray(questions)) {
       for (const [index, q] of questions.entries()) {
         const { id: oldId, createdAt, updatedAt, deletedAt, ...questionData } = q;
-        await Question.create({
-          ...questionData,
-          examId: exam!.id,
-          order: index + 1
-        }, { transaction });
+        await Question.create(
+          {
+            ...questionData,
+            examId: exam!.id,
+            order: index + 1,
+          },
+          { transaction }
+        );
       }
     }
 
     await transaction.commit();
 
     const fullExam = await Exam.findByPk(exam.id as string, {
-      include: [{ model: Question, as: 'questions' }]
+      include: [{ model: Question, as: 'questions' }],
     });
 
     res.status(200).json(fullExam);
@@ -120,7 +129,7 @@ export const submitExam = async (req: Request, res: Response, next: NextFunction
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
     const exam = await Exam.findByPk(examId as string, {
-      include: [{ model: Question, as: 'questions' }]
+      include: [{ model: Question, as: 'questions' }],
     });
 
     if (!exam) return res.status(404).json({ message: 'Exam not found' });
@@ -144,16 +153,16 @@ export const submitExam = async (req: Request, res: Response, next: NextFunction
       examId,
       score,
       isPassed,
-      userAnswers: answers // Store what user selected
+      userAnswers: answers, // Store what user selected
     });
 
     // SYNC PROGRESS: If passed, check if lesson can be marked COMPLETED
     if (isPassed) {
       const lesson = await Lesson.findByPk(exam.lessonId);
       if (lesson) {
-        let [progress] = await UserProgress.findOrCreate({
+        const [progress] = await UserProgress.findOrCreate({
           where: { userId, lessonId: lesson.id, courseId: lesson.courseId },
-          defaults: { status: ProgressStatus.IN_PROGRESS, isVideoCompleted: !lesson.videoUrl }
+          defaults: { status: ProgressStatus.IN_PROGRESS, isVideoCompleted: !lesson.videoUrl },
         });
 
         // If video is done (or no video), mark lesson as COMPLETED
@@ -166,20 +175,20 @@ export const submitExam = async (req: Request, res: Response, next: NextFunction
         const courseId = lesson.courseId;
         const allLessons = await Lesson.findAll({
           where: { courseId },
-          attributes: ['id', 'videoUrl']
+          attributes: ['id', 'videoUrl'],
         });
 
         if (allLessons.length > 0) {
           const allProg = await UserProgress.findAll({ where: { userId, courseId } });
-          const progMap = new Map(allProg.map(p => [p.lessonId, p.isVideoCompleted]));
+          const progMap = new Map(allProg.map((p) => [p.lessonId, p.isVideoCompleted]));
 
           const allExams = await Exam.findAll({
-            where: { lessonId: { [Op.in]: allLessons.map(l => l.id) } }
+            where: { lessonId: { [Op.in]: allLessons.map((l) => l.id) } },
           });
-          const examMap = new Map(allExams.map(ex => [ex.lessonId, ex.id]));
+          const examMap = new Map(allExams.map((ex) => [ex.lessonId, ex.id]));
 
           const allResults = await ExamResult.findAll({ where: { userId } });
-          const passedExams = new Set(allResults.filter(r => r.isPassed).map(r => r.examId));
+          const passedExams = new Set(allResults.filter((r) => r.isPassed).map((r) => r.examId));
 
           let completedCount = 0;
           for (const l of allLessons) {
@@ -193,10 +202,7 @@ export const submitExam = async (req: Request, res: Response, next: NextFunction
           }
 
           const totalPercentage = Math.round((completedCount / allLessons.length) * 100);
-          await Enrollment.update(
-            { progress: totalPercentage },
-            { where: { userId, courseId } }
-          );
+          await Enrollment.update({ progress: totalPercentage }, { where: { userId, courseId } });
         }
       }
     }
@@ -223,12 +229,12 @@ export const getMyExamResults = async (req: Request, res: Response, next: NextFu
               model: Lesson,
               as: 'lesson',
               attributes: ['id', 'title', 'courseId'],
-              include: [{ model: Course, as: 'course', attributes: ['id', 'name'] }]
-            }
-          ]
-        }
+              include: [{ model: Course, as: 'course', attributes: ['id', 'name'] }],
+            },
+          ],
+        },
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
     });
 
     res.status(200).json(results);
@@ -249,10 +255,10 @@ export const getResultById = async (req: Request, res: Response, next: NextFunct
           as: 'exam',
           include: [
             { model: Question, as: 'questions' },
-            { model: Lesson, as: 'lesson' }
-          ]
-        }
-      ]
+            { model: Lesson, as: 'lesson' },
+          ],
+        },
+      ],
     });
 
     if (!result) return res.status(404).json({ message: 'Result not found' });

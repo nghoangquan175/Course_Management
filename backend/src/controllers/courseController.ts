@@ -4,7 +4,7 @@ import Course, { CourseStatus } from '../models/Course';
 import Category from '../models/Category';
 import Lesson from '../models/Lesson';
 import Attachment from '../models/Attachment';
-import User from '../models/User';
+import User, { UserRole } from '../models/User';
 import Enrollment from '../models/Enrollment';
 import Review from '../models/Review';
 import Exam from '../models/Exam';
@@ -12,6 +12,8 @@ import UserProgress, { ProgressStatus } from '../models/UserProgress';
 import { slugify } from '../utils/slugify';
 import ExamResult from '../models/ExamResult';
 import Certificate from '../models/Certificate';
+import Notification, { NotificationType } from '../models/Notification';
+import { sendNotification } from '../utils/socket';
 
 export const createCourse = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -31,7 +33,7 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       thumbnailUrl,
       categoryId,
       instructorId,
-      status: 'DRAFT'
+      status: 'DRAFT',
     });
 
     res.status(201).json(course);
@@ -69,7 +71,7 @@ export const getAllCourses = async (req: Request, res: Response, next: NextFunct
       } else if (!status || status === 'all') {
         where[Op.or] = [
           { status: { [Op.ne]: 'DRAFT' } },
-          { [Op.and]: [{ status: 'DRAFT' }, { instructorId: req.user.id }] }
+          { [Op.and]: [{ status: 'DRAFT' }, { instructorId: req.user.id }] },
         ];
       }
     }
@@ -79,9 +81,9 @@ export const getAllCourses = async (req: Request, res: Response, next: NextFunct
       paranoid,
       include: [
         { model: Category, as: 'category', attributes: ['id', 'name'] },
-        { model: User, as: 'instructor', attributes: ['id', 'name'] }
+        { model: User, as: 'instructor', attributes: ['id', 'name'] },
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
     });
 
     res.status(200).json(courses);
@@ -105,20 +107,17 @@ export const getCourseById = async (req: Request, res: Response, next: NextFunct
           attributes: isOutline ? { exclude: ['videoUrl', 'content'] } : undefined,
           include: [
             { model: Attachment, as: 'attachments' },
-            { model: Exam, as: 'exam', attributes: ['id', 'title', 'passingScore'] }
-          ]
+            { model: Exam, as: 'exam', attributes: ['id', 'title', 'passingScore'] },
+          ],
         },
         { model: User, as: 'instructor', attributes: ['id', 'name'] },
-        { 
-          model: Review, 
+        {
+          model: Review,
           as: 'reviews',
-          include: [
-            { model: User, as: 'user', attributes: ['id', 'name'] }
-          ]
-        }
-      ]
+          include: [{ model: User, as: 'user', attributes: ['id', 'name'] }],
+        },
+      ],
     });
-
 
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
@@ -134,7 +133,7 @@ export const getCourseById = async (req: Request, res: Response, next: NextFunct
     let userEnrollment = null;
     if (userId) {
       userEnrollment = await Enrollment.findOne({
-        where: { userId, courseId: id }
+        where: { userId, courseId: id },
       });
     }
 
@@ -142,28 +141,26 @@ export const getCourseById = async (req: Request, res: Response, next: NextFunct
 
     // Attach highest score per lesson if logged in
     if (userId && courseData.lessons) {
-      const examIds = courseData.lessons
-        .filter((l: any) => l.exam)
-        .map((l: any) => l.exam.id);
-      
+      const examIds = courseData.lessons.filter((l: any) => l.exam).map((l: any) => l.exam.id);
+
       const highScoreMap = new Map();
 
       if (examIds.length > 0) {
         const allResults = await ExamResult.findAll({
-          where: { userId, examId: { [Op.in]: examIds } }
+          where: { userId, examId: { [Op.in]: examIds } },
         });
-        
-        allResults.forEach(r => {
+
+        allResults.forEach((r) => {
           const current = highScoreMap.get(r.examId) || 0;
           if (r.score > current) highScoreMap.set(r.examId, r.score);
         });
       }
-      
+
       courseData.lessons = courseData.lessons.map((l: any) => {
         const examId = l.exam?.id;
         return {
           ...l,
-          highestScore: examId ? highScoreMap.get(examId) ?? null : null
+          highestScore: examId ? (highScoreMap.get(examId) ?? null) : null,
         };
       });
     }
@@ -275,7 +272,9 @@ export const submitForApproval = async (req: Request, res: Response, next: NextF
     }
 
     if (course.instructorId !== req.user?.id) {
-      return res.status(403).json({ message: 'Unauthorized: Only the instructor of this course can submit it' });
+      return res
+        .status(403)
+        .json({ message: 'Unauthorized: Only the instructor of this course can submit it' });
     }
 
     if (course.status !== CourseStatus.DRAFT) {
@@ -284,8 +283,27 @@ export const submitForApproval = async (req: Request, res: Response, next: NextF
 
     course.status = CourseStatus.PENDING;
     await course.save();
+
+    // Notify Admins
+    const admins = await User.findAll({ where: { role: UserRole.ADMIN } });
+    await Promise.all(
+      admins.map(async (admin) => {
+        const notif = await Notification.create({
+          userId: admin.id,
+          targetRole: UserRole.ADMIN,
+          title: 'New Course Submitted',
+          message: `Course "${course.name}" has been submitted for approval.`,
+          type: NotificationType.COURSE_SUBMITTED,
+          referenceId: course.id,
+        });
+        sendNotification(admin.id, notif);
+      })
+    );
+
     res.status(200).json(course);
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const withdrawCourse = async (req: Request, res: Response, next: NextFunction) => {
@@ -301,7 +319,9 @@ export const withdrawCourse = async (req: Request, res: Response, next: NextFunc
     course.status = CourseStatus.DRAFT;
     await course.save();
     res.status(200).json(course);
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const approveCourse = async (req: Request, res: Response, next: NextFunction) => {
@@ -314,8 +334,22 @@ export const approveCourse = async (req: Request, res: Response, next: NextFunct
     }
     course.status = CourseStatus.CONTENT_APPROVED;
     await course.save();
+
+    // Notify Instructor
+    const notif = await Notification.create({
+      userId: course.instructorId,
+      targetRole: UserRole.INSTRUCTOR,
+      title: 'Course Approved',
+      message: `Your course "${course.name}" has been approved.`,
+      type: NotificationType.COURSE_APPROVED,
+      referenceId: course.id,
+    });
+    sendNotification(course.instructorId, notif);
+
     res.status(200).json(course);
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const rejectCourse = async (req: Request, res: Response, next: NextFunction) => {
@@ -328,8 +362,22 @@ export const rejectCourse = async (req: Request, res: Response, next: NextFuncti
     }
     course.status = CourseStatus.DRAFT; // Back to draft for fixes
     await course.save();
+
+    // Notify Instructor
+    const notif = await Notification.create({
+      userId: course.instructorId,
+      targetRole: UserRole.INSTRUCTOR,
+      title: 'Course Rejected',
+      message: `Your course "${course.name}" has been rejected. Please check and update.`,
+      type: NotificationType.COURSE_REJECTED,
+      referenceId: course.id,
+    });
+    sendNotification(course.instructorId, notif);
+
     res.status(200).json(course);
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const publishCourse = async (req: Request, res: Response, next: NextFunction) => {
@@ -337,13 +385,18 @@ export const publishCourse = async (req: Request, res: Response, next: NextFunct
     const { id } = req.params;
     const course = await Course.findByPk(id as string);
     if (!course) return res.status(404).json({ message: 'Course not found' });
-    if (course.status !== CourseStatus.CONTENT_APPROVED && course.status !== CourseStatus.UNPUBLISHED) {
+    if (
+      course.status !== CourseStatus.CONTENT_APPROVED &&
+      course.status !== CourseStatus.UNPUBLISHED
+    ) {
       return res.status(400).json({ message: 'Course must be approved or unpublished' });
     }
     course.status = CourseStatus.PUBLISHED;
     await course.save();
     res.status(200).json(course);
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const unpublishCourse = async (req: Request, res: Response, next: NextFunction) => {
@@ -357,7 +410,9 @@ export const unpublishCourse = async (req: Request, res: Response, next: NextFun
     course.status = CourseStatus.UNPUBLISHED;
     await course.save();
     res.status(200).json(course);
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const requestEdit = async (req: Request, res: Response, next: NextFunction) => {
@@ -370,7 +425,9 @@ export const requestEdit = async (req: Request, res: Response, next: NextFunctio
     course.status = CourseStatus.DRAFT;
     await course.save();
     res.status(200).json(course);
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 // --- Enrollment ---
 
@@ -394,7 +451,7 @@ export const enrollCourse = async (req: Request, res: Response, next: NextFuncti
 
     // Check if already enrolled
     const existingEnrollment = await Enrollment.findOne({
-      where: { userId, courseId: id }
+      where: { userId, courseId: id },
     });
 
     if (existingEnrollment) {
@@ -405,7 +462,7 @@ export const enrollCourse = async (req: Request, res: Response, next: NextFuncti
     const enrollment = await Enrollment.create({
       userId,
       courseId: id,
-      enrolledAt: new Date()
+      enrolledAt: new Date(),
     });
 
     // Increment totalStudents
@@ -434,10 +491,10 @@ export const getEnrolledCourses = async (req: Request, res: Response, next: Next
           include: [
             { model: Category, as: 'category' },
             { model: User, as: 'instructor', attributes: ['id', 'name'] },
-            { model: Lesson, as: 'lessons', attributes: ['id', 'videoUrl'] }
-          ]
-        }
-      ]
+            { model: Lesson, as: 'lessons', attributes: ['id', 'videoUrl'] },
+          ],
+        },
+      ],
     });
 
     if (!enrollments || enrollments.length === 0) {
@@ -447,14 +504,14 @@ export const getEnrolledCourses = async (req: Request, res: Response, next: Next
     // Optimize: Fetch reviews to check hasReviewed status
     const [allReviews, allCertificates] = await Promise.all([
       Review.findAll({ where: { userId } }),
-      Certificate.findAll({ where: { userId } })
+      Certificate.findAll({ where: { userId } }),
     ]);
-    
-    const reviewMap = new Set(allReviews.map(r => r.courseId));
-    const certMap = new Map(allCertificates.map(c => [c.courseId, c.pdfUrl]));
+
+    const reviewMap = new Set(allReviews.map((r) => r.courseId));
+    const certMap = new Map(allCertificates.map((c) => [c.courseId, c.pdfUrl]));
 
     const coursesWithProgress = enrollments
-      .filter(e => e.course)
+      .filter((e) => e.course)
       .map((e) => {
         const course: any = e.course.toJSON();
         course.hasReviewed = reviewMap.has(course.id);
@@ -478,8 +535,12 @@ export const getLessonDetail = async (req: Request, res: Response, next: NextFun
     const lesson = await Lesson.findByPk(lessonId as string, {
       include: [
         { model: Attachment, as: 'attachments' },
-        { model: Exam, as: 'exam', attributes: ['id', 'title', 'passingScore', 'timeLimit', 'description'] }
-      ]
+        {
+          model: Exam,
+          as: 'exam',
+          attributes: ['id', 'title', 'passingScore', 'timeLimit', 'description'],
+        },
+      ],
     });
 
     if (!lesson) {

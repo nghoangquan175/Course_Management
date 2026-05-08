@@ -1,6 +1,7 @@
 import React from 'react';
-import { Search, Home, Bell } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search } from 'lucide-react';
+import { NotificationBell } from './NotificationBell';
+import { DashboardSwitcher } from './DashboardSwitcher';
 
 interface DashboardHeaderProps {
   onSearch?: (query: string) => void;
@@ -9,7 +10,7 @@ interface DashboardHeaderProps {
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onSearch,
-  placeholder = "Search everything..."
+  placeholder = 'Search everything...',
 }) => {
   return (
     <header className="flex items-center justify-between">
@@ -24,18 +25,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
-        <Link
-          to="/"
-          title="Back to Site"
-          className="p-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all border border-white/5"
-        >
-          <Home className="w-5 h-5" />
-        </Link>
-
-        <button className="relative p-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all border border-white/5">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-950"></span>
-        </button>
+        <DashboardSwitcher />
+        <NotificationBell />
       </div>
     </header>
   );

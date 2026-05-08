@@ -11,6 +11,7 @@ import RefreshToken from './RefreshToken';
 import ExamResult from './ExamResult';
 import Certificate from './Certificate';
 import InstructorApplication from './InstructorApplication';
+import Notification from './Notification';
 
 // --- User Associations ---
 User.hasMany(Course, { foreignKey: 'instructorId', as: 'instructedCourses' });
@@ -21,6 +22,7 @@ User.hasMany(RefreshToken, { foreignKey: 'userId', as: 'refreshTokens' });
 User.hasMany(ExamResult, { foreignKey: 'userId', as: 'examResults' });
 User.hasMany(Certificate, { foreignKey: 'userId', as: 'certificates' });
 User.hasMany(InstructorApplication, { foreignKey: 'userId', as: 'instructorApplications' });
+User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
 
 // --- RefreshToken Associations ---
 RefreshToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
@@ -74,6 +76,9 @@ Certificate.belongsTo(Course, { foreignKey: 'courseId', as: 'course' });
 // --- InstructorApplication Associations ---
 InstructorApplication.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+// --- Notification Associations ---
+Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 export {
   User,
   Category,
@@ -86,5 +91,6 @@ export {
   UserProgress,
   ExamResult,
   Certificate,
-  InstructorApplication
+  InstructorApplication,
+  Notification,
 };
