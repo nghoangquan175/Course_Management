@@ -1,0 +1,63 @@
+services:
+  backend:
+    image: ghcr.io/nghoangquan175/course-management-backend:latest
+    container_name: course-management-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    environment:
+      - NODE_ENV=production
+    networks:
+      - wettenhalls-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 450M
+        reservations:
+          memory: 128M
+
+  frontend:
+    image: ghcr.io/nghoangquan175/course-management-frontend:latest
+    container_name: course-management-frontend
+    restart: unless-stopped
+    networks:
+      - wettenhalls-net
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+        reservations:
+          memory: 32M
+
+  db:
+    image: mysql:8.0
+    container_name: course-management-db
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - wettenhalls-net
+
+networks:
+  wettenhalls-net:
+    external: true
+
+volumes:
+  mysql_data:
