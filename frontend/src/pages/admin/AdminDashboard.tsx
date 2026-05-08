@@ -56,8 +56,8 @@ export const AdminDashboard: React.FC = () => {
     navigate('/admin/login');
   };
 
-  const onStatusChange = (status: string) => {
-    setCurrentStatus(status);
+  const onStatusChange = (status?: string) => {
+    setCurrentStatus(status || 'all');
   };
 
   const mockUsers = Array.from({ length: 15 }).map((_, i) => ({

@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Trash2, 
-  Copy, 
-  ArrowLeft,
-  Save,
-  Loader2,
-  ClipboardCheck
-} from 'lucide-react';
+import { Plus, Trash2, Copy, ArrowLeft, Save, Loader2, ClipboardCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,22 +18,27 @@ export const QuestionType = {
   MULTIPLE_CHOICE: 'MULTIPLE_CHOICE',
 } as const;
 
-export type QuestionType = typeof QuestionType[keyof typeof QuestionType];
+export type QuestionType = (typeof QuestionType)[keyof typeof QuestionType];
 
 const questionSchema = z.object({
   type: z.nativeEnum(QuestionType),
   questionText: z.string().min(5, 'Question content must be at least 5 characters'),
-  options: z.array(z.string().min(1, 'Option content is required')).min(2, 'At least 2 options are required'),
+  options: z
+    .array(z.string().min(1, 'Option content is required'))
+    .min(2, 'At least 2 options are required'),
   correctAnswerIndex: z.number().min(0),
-  explanation: z.string().optional()
+  explanation: z.string().optional(),
 });
 
 const examSchema = z.object({
   title: z.string().min(5, 'Quiz title must be at least 5 characters'),
   description: z.string().optional(),
-  passingScore: z.number().min(1, 'Passing score must be at least 1%').max(100, 'Passing score cannot exceed 100%'),
+  passingScore: z
+    .number()
+    .min(1, 'Passing score must be at least 1%')
+    .max(100, 'Passing score cannot exceed 100%'),
   timeLimit: z.number().min(0, 'Time limit cannot be negative'),
-  questions: z.array(questionSchema).min(1, 'At least one question is required')
+  questions: z.array(questionSchema).min(1, 'At least one question is required'),
 });
 
 type ExamFormValues = z.infer<typeof examSchema>;
@@ -57,7 +54,7 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
     control,
     handleSubmit,
     reset,
-    formState: { errors }
+    formState: { errors },
   } = useForm<ExamFormValues>({
     resolver: zodResolver(examSchema),
     defaultValues: {
@@ -65,14 +62,16 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
       description: '',
       passingScore: 50,
       timeLimit: 0,
-      questions: [{ 
-        type: QuestionType.MULTIPLE_CHOICE, 
-        questionText: '', 
-        options: ['', '', '', ''], 
-        correctAnswerIndex: 0, 
-        explanation: '' 
-      }]
-    }
+      questions: [
+        {
+          type: QuestionType.MULTIPLE_CHOICE,
+          questionText: '',
+          options: ['', '', '', ''],
+          correctAnswerIndex: 0,
+          explanation: '',
+        },
+      ],
+    },
   });
 
   // Debug validation errors
@@ -80,7 +79,7 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
     if (Object.keys(errors).length > 0) {
       console.log('Detailed Validation Errors:', errors);
       // Log specific question errors if they exist
-      if (errors.questions) {
+      if (errors.questions && Array.isArray(errors.questions)) {
         errors.questions.forEach((qErr, idx) => {
           if (qErr) console.log(`Question ${idx + 1} errors:`, qErr);
         });
@@ -90,7 +89,7 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
 
   const { fields, append, remove, insert } = useFieldArray({
     control,
-    name: "questions"
+    name: 'questions',
   });
 
   useEffect(() => {
@@ -103,7 +102,7 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
             description: data.description || '',
             passingScore: data.passingScore,
             timeLimit: data.timeLimit,
-            questions: data.questions || []
+            questions: data.questions || [],
           });
         }
       } catch (error) {
@@ -127,7 +126,7 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
     try {
       await examService.upsertExam({
         lessonId,
-        ...formData
+        ...formData,
       });
       toast.success('Exam saved successfully!');
       onBack();
@@ -144,7 +143,7 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
       questionText: '',
       options: type === QuestionType.MULTIPLE_CHOICE ? ['', '', '', ''] : ['True', 'False'],
       correctAnswerIndex: 0,
-      explanation: ''
+      explanation: '',
     });
   };
 
@@ -179,23 +178,23 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
           </div>
         </div>
         <div className="flex items-center gap-3">
-           <button 
-             onClick={onBack}
-             className="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-sm font-bold transition-all"
-           >
-             Cancel
-           </button>
-           <button 
-             onClick={handleSubmit(onSubmit, (err) => {
-               console.log('Form Errors:', err);
-               toast.error('Please check all fields and try again.');
-             })}
-             disabled={isSaving}
-             className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50"
-           >
-             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-             Save Quiz
-           </button>
+          <button
+            onClick={onBack}
+            className="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-sm font-bold transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit(onSubmit, (err) => {
+              console.log('Form Errors:', err);
+              toast.error('Please check all fields and try again.');
+            })}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50"
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Save Quiz
+          </button>
         </div>
       </div>
 
@@ -203,31 +202,53 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
         {/* Exam Settings */}
         <div className="glass p-6 rounded-3xl border border-white/5 grid grid-cols-3 gap-6">
           <div className="col-span-3">
-            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 block">Quiz Title</label>
+            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 block">
+              Quiz Title
+            </label>
             <input
               {...register('title', { required: true })}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500 transition-all"
               placeholder="Enter quiz title..."
             />
-            {errors.title && <p className="text-red-500 text-[10px] mt-1 font-bold italic">{errors.title.message}</p>}
+            {errors.title && (
+              <p className="text-red-500 text-[10px] mt-1 font-bold italic">
+                {errors.title.message}
+              </p>
+            )}
           </div>
           <div>
-            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 block">Passing Score (%)</label>
+            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 block">
+              Passing Score (%)
+            </label>
             <input
               type="number"
-              {...register('passingScore', { setValueAs: (v) => v === '' ? undefined : parseInt(v) })}
+              {...register('passingScore', {
+                setValueAs: (v) => (v === '' ? undefined : parseInt(v)),
+              })}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500 transition-all"
             />
-            {errors.passingScore && <p className="text-red-500 text-[10px] mt-1 font-bold italic">{errors.passingScore.message}</p>}
+            {errors.passingScore && (
+              <p className="text-red-500 text-[10px] mt-1 font-bold italic">
+                {errors.passingScore.message}
+              </p>
+            )}
           </div>
           <div>
-            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 block">Time Limit (Minutes)</label>
+            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 block">
+              Time Limit (Minutes)
+            </label>
             <input
               type="number"
-              {...register('timeLimit', { setValueAs: (v) => v === '' ? undefined : parseInt(v) })}
+              {...register('timeLimit', {
+                setValueAs: (v) => (v === '' ? undefined : parseInt(v)),
+              })}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500 transition-all"
             />
-            {errors.timeLimit && <p className="text-red-500 text-[10px] mt-1 font-bold italic">{errors.timeLimit.message}</p>}
+            {errors.timeLimit && (
+              <p className="text-red-500 text-[10px] mt-1 font-bold italic">
+                {errors.timeLimit.message}
+              </p>
+            )}
             <p className="text-[10px] text-slate-500 mt-1">Set to 0 for no limit</p>
           </div>
         </div>
@@ -247,18 +268,20 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
                     {index + 1}
                   </div>
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    {field.type === QuestionType.MULTIPLE_CHOICE ? 'Multiple Choice' : 'True / False'}
+                    {field.type === QuestionType.MULTIPLE_CHOICE
+                      ? 'Multiple Choice'
+                      : 'True / False'}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button 
+                  <button
                     onClick={() => duplicateQuestion(index)}
                     className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
                     title="Duplicate"
                   >
                     <Copy className="w-4 h-4" />
                   </button>
-                  <button 
+                  <button
                     onClick={() => remove(index)}
                     className="p-2 hover:bg-red-500/10 rounded-lg text-slate-500 hover:text-red-500 transition-all"
                     title="Delete"
@@ -270,7 +293,9 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
 
               <div className="p-6 space-y-6">
                 <div>
-                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 block">Question Content</label>
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 block">
+                    Question Content
+                  </label>
                   <textarea
                     {...register(`questions.${index}.questionText` as const, { required: true })}
                     rows={3}
@@ -278,12 +303,16 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
                     placeholder="Enter your question here..."
                   />
                   {errors.questions?.[index]?.questionText && (
-                    <p className="text-red-500 text-[10px] mt-1 font-bold italic">{errors.questions[index]?.questionText?.message}</p>
+                    <p className="text-red-500 text-[10px] mt-1 font-bold italic">
+                      {errors.questions[index]?.questionText?.message}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4 block">Answer Options</label>
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4 block">
+                    Answer Options
+                  </label>
                   <Controller
                     name={`questions.${index}.correctAnswerIndex` as const}
                     control={control}
@@ -305,7 +334,9 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
                                   placeholder={`Option ${optIndex + 1}`}
                                 />
                                 {errors.questions?.[index]?.options?.[optIndex] && (
-                                  <p className="text-red-500 text-[10px] mt-1 font-bold italic">{errors.questions[index]?.options?.[optIndex]?.message}</p>
+                                  <p className="text-red-500 text-[10px] mt-1 font-bold italic">
+                                    {errors.questions[index]?.options?.[optIndex]?.message}
+                                  </p>
                                 )}
                               </div>
                             </div>
@@ -313,14 +344,17 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
                         ) : (
                           <div className="flex gap-4">
                             {['True', 'False'].map((val, optIndex) => (
-                              <label key={val} className="flex-1 flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer transition-all">
-                                 <span className="text-sm font-bold">{val}</span>
-                                 <input
-                                   type="radio"
-                                   checked={Number(radioField.value) === optIndex}
-                                   onChange={() => radioField.onChange(optIndex)}
-                                   className="w-4 h-4 text-indigo-600 bg-white/5 border-white/10 focus:ring-indigo-500"
-                                 />
+                              <label
+                                key={val}
+                                className="flex-1 flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer transition-all"
+                              >
+                                <span className="text-sm font-bold">{val}</span>
+                                <input
+                                  type="radio"
+                                  checked={Number(radioField.value) === optIndex}
+                                  onChange={() => radioField.onChange(optIndex)}
+                                  className="w-4 h-4 text-indigo-600 bg-white/5 border-white/10 focus:ring-indigo-500"
+                                />
                               </label>
                             ))}
                           </div>
@@ -331,7 +365,9 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 block">Explanation (Optional)</label>
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-3 block">
+                    Explanation (Optional)
+                  </label>
                   <textarea
                     {...register(`questions.${index}.explanation` as const)}
                     rows={2}
@@ -367,7 +403,7 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
       <AnimatePresence>
         {showConfirmModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -378,16 +414,17 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
               </div>
               <h3 className="text-xl font-bold mb-2">Save Quiz Changes?</h3>
               <p className="text-slate-400 text-sm mb-8">
-                Are you sure you want to save the changes to this quiz? This will update the curriculum for all students.
+                Are you sure you want to save the changes to this quiz? This will update the
+                curriculum for all students.
               </p>
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={() => setShowConfirmModal(false)}
                   className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl font-bold text-sm transition-all"
                 >
                   No, review again
                 </button>
-                <button 
+                <button
                   onClick={confirmSave}
                   className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-600/20 transition-all"
                 >

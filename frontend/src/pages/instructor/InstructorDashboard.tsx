@@ -52,8 +52,8 @@ export const InstructorDashboard: React.FC = () => {
     navigate('/login');
   };
 
-  const onStatusChange = (status: string) => {
-    setCurrentStatus(status);
+  const onStatusChange = (status?: string) => {
+    setCurrentStatus(status || 'all');
   };
 
   // Mock student data for instructor
