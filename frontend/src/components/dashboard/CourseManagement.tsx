@@ -21,6 +21,7 @@ import { CourseDetailView } from './CourseDetailView';
 import { CurriculumEditor } from './CurriculumEditor';
 import { Modal } from '../common/Modal';
 import { useCourseActions } from '../../hooks/useCourseQueries';
+import { useSearchParams } from 'react-router-dom';
 
 export type CourseStatus =
   | 'DRAFT'
@@ -52,6 +53,7 @@ interface CourseManagementProps {
   currentUserId?: string;
   initialView?: 'list' | 'create' | 'edit' | 'detail' | 'curriculum';
   initialCourseId?: string;
+  isRefreshing?: boolean;
 }
 
 export const CourseManagement: React.FC<CourseManagementProps> = ({
@@ -65,10 +67,19 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
   currentUserId,
   initialView = 'list',
   initialCourseId,
+  isRefreshing = false,
 }) => {
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'detail' | 'curriculum'>(
     initialView
   );
+  const [, setSearchParams] = useSearchParams();
+
+  const handleBack = () => {
+    setView('list');
+    // Clear URL params when going back
+    setSearchParams({});
+    if (onRefresh) onRefresh(currentStatus);
+  };
 
   // Notify parent of view changes
   React.useEffect(() => {
@@ -230,33 +241,19 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     return (
       <CreateCourseForm
         onBack={() => {
-          setView('list');
-          if (onRefresh) onRefresh();
+          handleBack();
+          if (onRefresh) onRefresh(); // Reset to 'all' for new courses
         }}
       />
     );
   }
 
   if (view === 'edit' && selectedCourse) {
-    return (
-      <CreateCourseForm
-        onBack={() => {
-          setView('list');
-          if (onRefresh) onRefresh();
-        }}
-        initialData={selectedCourse}
-      />
-    );
+    return <CreateCourseForm onBack={handleBack} initialData={selectedCourse} />;
   }
 
   if (view === 'detail' && selectedCourse) {
-    return (
-      <CourseDetailView
-        courseId={selectedCourse.id}
-        onBack={() => setView('list')}
-        isAdmin={isAdmin}
-      />
-    );
+    return <CourseDetailView courseId={selectedCourse.id} onBack={handleBack} isAdmin={isAdmin} />;
   }
 
   if (view === 'curriculum' && selectedCourse) {
@@ -264,7 +261,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
       <CurriculumEditor
         courseId={selectedCourse.id}
         courseName={selectedCourse.name}
-        onBack={() => setView('list')}
+        onBack={handleBack}
       />
     );
   }
@@ -349,9 +346,16 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 relative">
-              {isLoading && (
+              {(isLoading || isRefreshing) && (
                 <div className="absolute inset-0 z-20 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center">
-                  <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    {isRefreshing && !isLoading && (
+                      <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest animate-pulse">
+                        Refreshing Data...
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
               {courses.map((course) => (

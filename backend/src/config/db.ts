@@ -19,18 +19,29 @@ const sequelize = new Sequelize(
       max: 5,
       min: 0,
       acquire: 30000,
-      idle: 10000
-    }
+      idle: 10000,
+    },
   }
 );
 
-export const connectDB = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log('MySQL Database connected successfully to:', process.env.DB_NAME);
-  } catch (error) {
-    console.error('Unable to connect to the database:', error);
-    process.exit(1);
+export const connectDB = async (retries = 5) => {
+  while (retries > 0) {
+    try {
+      await sequelize.authenticate();
+      console.log('MySQL Database connected successfully to:', process.env.DB_NAME);
+      return;
+    } catch (error) {
+      retries -= 1;
+      console.error(
+        `Unable to connect to the database (Attempts left: ${retries}):`,
+        (error as any).message
+      );
+      if (retries === 0) {
+        process.exit(1);
+      }
+      console.log('Retrying in 5 seconds...');
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
   }
 };
 

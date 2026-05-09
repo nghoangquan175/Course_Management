@@ -33,7 +33,12 @@ export const InstructorDashboard: React.FC = () => {
   const [subView, setSubView] = useState('list');
   const [currentStatus, setCurrentStatus] = useState<string | undefined>(undefined);
 
-  const { data: courses = [], isLoading: isLoadingCourses } = useCourses({ status: currentStatus });
+  const {
+    data: courses = [],
+    isLoading: isLoadingCourses,
+    isFetching: isFetchingCourses,
+    refetch: refetchCourses,
+  } = useCourses({ status: currentStatus });
 
   const sidebarItems: SidebarItem[] = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" /> },
@@ -53,7 +58,14 @@ export const InstructorDashboard: React.FC = () => {
   };
 
   const onStatusChange = (status?: string) => {
-    setCurrentStatus(status || 'all');
+    const newStatus = status || 'all';
+    const effectiveCurrentStatus = currentStatus || 'all';
+
+    if (newStatus === effectiveCurrentStatus) {
+      refetchCourses();
+    } else {
+      setCurrentStatus(status === 'all' ? undefined : status);
+    }
   };
 
   // Mock student data for instructor
@@ -75,6 +87,7 @@ export const InstructorDashboard: React.FC = () => {
             onRefresh={onStatusChange}
             currentStatus={(currentStatus as any) || 'all'}
             isLoading={isLoadingCourses}
+            isRefreshing={isFetchingCourses}
             onViewChange={setSubView}
             currentUserId={user?.id}
             initialView={searchParams.get('view') as any}

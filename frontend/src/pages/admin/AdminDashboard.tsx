@@ -35,7 +35,12 @@ export const AdminDashboard: React.FC = () => {
   const [subView, setSubView] = useState('list');
   const [currentStatus, setCurrentStatus] = useState<string | 'all'>('all');
 
-  const { data: courses = [], isLoading: isLoadingCourses } = useCourses({ status: currentStatus });
+  const {
+    data: courses = [],
+    isLoading: isLoadingCourses,
+    isFetching: isFetchingCourses,
+    refetch: refetchCourses,
+  } = useCourses({ status: currentStatus });
 
   const sidebarItems: SidebarItem[] = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" /> },
@@ -57,7 +62,12 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const onStatusChange = (status?: string) => {
-    setCurrentStatus(status || 'all');
+    const newStatus = status || 'all';
+    if (newStatus === currentStatus) {
+      refetchCourses();
+    } else {
+      setCurrentStatus(newStatus);
+    }
   };
 
   const mockUsers = Array.from({ length: 15 }).map((_, i) => ({
@@ -80,6 +90,7 @@ export const AdminDashboard: React.FC = () => {
             onViewChange={setSubView}
             onRefresh={onStatusChange}
             isLoading={isLoadingCourses}
+            isRefreshing={isFetchingCourses}
             currentStatus={currentStatus as any}
             currentUserId={user?.id}
             initialView={searchParams.get('view') as any}
