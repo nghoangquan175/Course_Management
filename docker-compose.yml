@@ -69,6 +69,8 @@ services:
           memory: 256M
         reservations:
           memory: 64M
+    environment:
+      - MYSQL_ROOT_HOST=%
     env_file:
       - ./backend/.env.production
     volumes:
