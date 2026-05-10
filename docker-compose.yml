@@ -51,7 +51,12 @@ services:
     image: mysql:8.0
     container_name: course-management-db
     restart: unless-stopped
-    command: --innodb_buffer_pool_size=128M
+    command: 
+      - --innodb_buffer_pool_size=64M
+      - --performance_schema=OFF
+      - --max_connections=10
+      - --innodb_log_buffer_size=1M
+      - --innodb_flush_log_at_trx_commit=2
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
       interval: 10s
@@ -63,7 +68,7 @@ services:
         limits:
           memory: 256M
         reservations:
-          memory: 128M
+          memory: 64M
     env_file:
       - ./backend/.env.production
     volumes:
