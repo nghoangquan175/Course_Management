@@ -91,6 +91,9 @@ jobs:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          port: 22
+          debug: true
+          timeout: 60s
           script: mkdir -p ~/course-management
 
       - name: Copy docker-compose to server
@@ -99,6 +102,8 @@ jobs:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          port: 22
+          timeout: 60s
           source: "docker-compose.yml"
           target: "~/course-management"
 
@@ -108,6 +113,10 @@ jobs:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          port: 22
+          debug: true
+          timeout: 60s
+          command_timeout: 15m
           script: |
             cd ~/course-management
             
