@@ -25,9 +25,9 @@ api.interceptors.response.use(
 
     // Only try to refresh if it's a 401 error NOT from a login or refresh request
     if (
-      error.response?.status === 401 && 
-      !originalRequest._retry && 
-      !originalRequest.url?.includes('/auth/login') && 
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/login') &&
       !originalRequest.url?.includes('/auth/admin/login') &&
       originalRequest.url !== '/auth/refresh'
     ) {
@@ -35,7 +35,11 @@ api.interceptors.response.use(
 
       try {
         // We use a separate axios instance for refresh to avoid interceptor loop
-        const response = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {}, { withCredentials: true });
+        const response = await axios.post(
+          `${api.defaults.baseURL}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
         const { accessToken } = response.data;
 
         // Save new token to localStorage
@@ -45,8 +49,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         localStorage.removeItem('accessToken');
-        // Redirect to login if refresh fails
-        window.location.href = '/login';
+        // Don't force redirect to login here, let the application handle guest state
         return Promise.reject(refreshError);
       }
     }
