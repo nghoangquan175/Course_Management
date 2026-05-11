@@ -25,6 +25,7 @@ import { cloudinaryService } from '../../api/cloudinaryService';
 import { toast } from 'react-hot-toast';
 import { ExamEditor } from './ExamEditor';
 import { formatDuration } from '../../utils/videoUtils';
+import { Modal } from '../common/Modal';
 
 // Custom styles for Quill in dark mode
 const quillStyles = `
@@ -130,6 +131,8 @@ export const CurriculumEditor: React.FC<CurriculumEditorProps> = ({
     title: string;
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSaveConfirmModalOpen, setIsSaveConfirmModalOpen] = useState(false);
+  const [pendingLessonData, setPendingLessonData] = useState<LessonFormValues | null>(null);
 
   // Media states
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
@@ -301,6 +304,19 @@ export const CurriculumEditor: React.FC<CurriculumEditorProps> = ({
     } finally {
       setIsSaving(false);
       setUploadProgress({});
+      setPendingLessonData(null);
+    }
+  };
+
+  const onConfirmSave = (data: LessonFormValues) => {
+    setPendingLessonData(data);
+    setIsSaveConfirmModalOpen(true);
+  };
+
+  const handleConfirmedSave = () => {
+    if (pendingLessonData) {
+      setIsSaveConfirmModalOpen(false);
+      handleSaveLesson(pendingLessonData);
     }
   };
 
@@ -766,7 +782,7 @@ export const CurriculumEditor: React.FC<CurriculumEditorProps> = ({
                   Cancel
                 </button>
                 <button
-                  onClick={handleSubmit(handleSaveLesson)}
+                  onClick={handleSubmit(onConfirmSave)}
                   disabled={isSaving}
                   className="flex items-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50"
                 >
@@ -800,6 +816,47 @@ export const CurriculumEditor: React.FC<CurriculumEditorProps> = ({
             Add New Lesson
           </button>
         )}
+
+        <Modal
+          isOpen={isSaveConfirmModalOpen}
+          onClose={() => !isSaving && setIsSaveConfirmModalOpen(false)}
+          title="Confirm Lesson Save"
+          footer={
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsSaveConfirmModalOpen(false)}
+                className="px-6 py-2 text-sm font-bold text-slate-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmedSave}
+                className="px-8 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition-all"
+              >
+                <Save className="w-4 h-4" />
+                Confirm & Save
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
+              <div className="w-10 h-10 bg-indigo-500/10 rounded-full flex items-center justify-center shrink-0">
+                <Save className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-white font-bold">Ready to save your lesson?</p>
+                <p className="text-xs text-slate-500">
+                  Media files will be uploaded to our secure servers after you confirm.
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-400 px-1">
+              Once you confirm, the upload process will start. You can monitor the progress bars in
+              the form.
+            </p>
+          </div>
+        </Modal>
       </div>
     </div>
   );

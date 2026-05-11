@@ -21,6 +21,7 @@ import { useQueryClient } from '@tanstack/react-query';
 export const InstructorApplicationManagement: React.FC = () => {
   const { applications, isLoading, processApplication, isProcessing } = useInstructorApplications();
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>(
@@ -50,11 +51,16 @@ export const InstructorApplicationManagement: React.FC = () => {
   };
 
   const handleApprove = () => {
+    setIsApproveModalOpen(true);
+  };
+
+  const handleConfirmApprove = () => {
     if (!selectedApp) return;
     processApplication(
       { id: selectedApp.id, status: 'APPROVED' },
       {
         onSuccess: () => {
+          setIsApproveModalOpen(false);
           queryClient.invalidateQueries({ queryKey: ['instructor-applications'] });
           handleBack();
         },
@@ -207,7 +213,6 @@ export const InstructorApplicationManagement: React.FC = () => {
             </div>
           </div>
         </div>
-
         {/* Rejection Reason Modal */}
         <Modal
           isOpen={isRejectModalOpen}
@@ -252,6 +257,66 @@ export const InstructorApplicationManagement: React.FC = () => {
                 className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-all resize-none"
               />
             </div>
+          </div>
+        </Modal>
+
+        {/* Approval Confirmation Modal */}
+        <Modal
+          isOpen={isApproveModalOpen}
+          onClose={() => setIsApproveModalOpen(false)}
+          title="Approve Applicant"
+          footer={
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsApproveModalOpen(false)}
+                className="px-6 py-2 text-sm font-bold text-slate-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmApprove}
+                disabled={isProcessing}
+                className="px-8 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-green-600/20 transition-all"
+              >
+                {isProcessing ? (
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )}
+                Confirm Approval
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-6">
+            <div className="flex items-center gap-4 p-6 bg-green-500/5 border border-green-500/10 rounded-[2rem]">
+              <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center shrink-0">
+                <CheckCircle className="w-6 h-6 text-green-500" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-white font-bold text-lg">Approve Instructor?</p>
+                <p className="text-sm text-slate-400">
+                  This will upgrade {selectedApp.fullName} to an instructor role.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/5 space-y-3">
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-500 uppercase font-black tracking-widest">
+                  Applicant
+                </span>
+                <span className="text-white font-bold">{selectedApp.fullName}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-500 uppercase font-black tracking-widest">Email</span>
+                <span className="text-white font-medium">{selectedApp.email}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 italic text-center">
+              An approval email will be automatically sent to the applicant.
+            </p>
           </div>
         </Modal>
       </div>

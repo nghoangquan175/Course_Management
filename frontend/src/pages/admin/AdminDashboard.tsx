@@ -18,7 +18,7 @@ import { useAdminDashboard } from '../../hooks/useAdminDashboard';
 import { formatDistanceToNow } from 'date-fns';
 
 export const AdminDashboard: React.FC = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -65,6 +65,8 @@ export const AdminDashboard: React.FC = () => {
         return (
           <CourseManagement
             onViewChange={setSubView}
+            isAdmin={true}
+            currentUserId={user?.id}
             initialView={searchParams.get('view') as any}
             initialCourseId={searchParams.get('courseId') || undefined}
           />

@@ -1,12 +1,30 @@
 import { CourseCard } from '../components/course/CourseCard';
 import { useCourses } from '../hooks/useCourseQueries';
-import { useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Users, Star, ArrowRight, CheckCircle, ChevronRight } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import api from '../utils/api';
 
 export const Home: React.FC = () => {
   const { user } = useAuth();
+  const [eligibility, setEligibility] = useState<{ eligible: boolean; reason?: string } | null>(
+    null
+  );
+
+  useEffect(() => {
+    const checkEligibility = async () => {
+      if (user && user.role === 'USER') {
+        try {
+          const response = await api.get('/instructor-applications/eligibility');
+          setEligibility(response.data);
+        } catch (error) {
+          console.error('Failed to check eligibility:', error);
+        }
+      }
+    };
+    checkEligibility();
+  }, [user]);
   const coursesRef = useRef<HTMLDivElement>(null);
 
   const scrollToCourses = () => {
@@ -165,8 +183,8 @@ export const Home: React.FC = () => {
           </div>
         </div>
       </section>
-      {/* CTA Section for Instructors - Only show for USER or Guests */}
-      {(!user || user.role === 'USER') && (
+      {/* CTA Section for Instructors - Only show for Guests or Eligible Users */}
+      {(!user || (user.role === 'USER' && (eligibility === null || eligibility.eligible))) && (
         <section className="py-24 bg-slate-950 relative overflow-hidden">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-indigo-600/5 blur-[120px] rounded-full"></div>
           <div className="container mx-auto px-6 max-w-[1440px] relative z-10">

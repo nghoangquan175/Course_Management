@@ -21,6 +21,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
+import { Modal } from '../../components/common/Modal';
 
 const registrationSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -39,22 +40,43 @@ export const BecomeInstructor: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [eligibility, setEligibility] = useState<{
+    eligible: boolean;
+    reason?: string;
+    message?: string;
+  } | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [formData, setFormData] = useState<RegistrationFormData | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isLoadingEligibility, setIsLoadingEligibility] = useState(true);
+
   useEffect(() => {
     if (!user) {
       navigate('/login', { state: { from: location.pathname } });
+      return;
     }
-  }, [user, navigate, location]);
 
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+    const checkEligibility = async () => {
+      try {
+        const response = await api.get('/instructor-applications/eligibility');
+        setEligibility(response.data);
+      } catch (error) {
+        console.error('Failed to check eligibility:', error);
+      } finally {
+        setIsLoadingEligibility(false);
+      }
+    };
+
+    checkEligibility();
+  }, [user, navigate, location]);
 
   const {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
@@ -63,9 +85,7 @@ export const BecomeInstructor: React.FC = () => {
     },
   });
 
-  const cvUrl = watch('cvUrl');
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -74,35 +94,93 @@ export const BecomeInstructor: React.FC = () => {
       return;
     }
 
-    setIsUploading(true);
+    setSelectedFile(file);
+    setValue('cvUrl', file.name); // Set value to pass validation
+    toast.success(`Selected file: ${file.name}`);
+  };
+
+  const onSubmit = (data: RegistrationFormData) => {
+    if (!selectedFile) {
+      toast.error('Please select your CV');
+      return;
+    }
+    setFormData(data);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    if (!formData || !selectedFile) return;
+
+    setIsConfirmModalOpen(false);
+    setIsSubmitting(true);
     setUploadProgress(0);
 
     try {
-      const data = await cloudinaryService.uploadMedia(file, 'raw', 'instructor_cvs', (percent) =>
-        setUploadProgress(percent)
+      // 1. Upload file first
+      const uploadResponse = await cloudinaryService.uploadMedia(
+        selectedFile,
+        'raw',
+        'instructor_cvs',
+        (percent) => setUploadProgress(percent)
       );
-      setValue('cvUrl', data.secure_url);
-      toast.success('CV uploaded successfully');
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload CV');
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
-  const onSubmit = async (data: RegistrationFormData) => {
-    setIsSubmitting(true);
-    try {
-      await api.post('/instructor-applications/apply', data);
+      // 2. Submit application with real URL
+      const finalData = {
+        ...formData,
+        cvUrl: uploadResponse.secure_url,
+      };
+
+      await api.post('/instructor-applications/apply', finalData);
       setIsSuccess(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error: any) {
+      console.error('Submission error:', error);
       toast.error(error.response?.data?.message || 'Failed to submit application');
     } finally {
       setIsSubmitting(false);
+      setFormData(null);
     }
   };
+
+  if (isLoadingEligibility) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (eligibility && !eligibility.eligible) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-xl w-full bg-slate-900 border border-white/10 rounded-[3rem] p-12 shadow-2xl"
+        >
+          <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-8 text-amber-500">
+            {eligibility.reason === 'ALREADY_INSTRUCTOR' ? (
+              <CheckCircle className="w-10 h-10" />
+            ) : (
+              <Calendar className="w-10 h-10" />
+            )}
+          </div>
+          <h2 className="text-3xl font-black text-white mb-4">
+            {eligibility.reason === 'ALREADY_INSTRUCTOR'
+              ? 'Already an Instructor'
+              : 'Application Restricted'}
+          </h2>
+          <p className="text-slate-400 text-lg mb-10 leading-relaxed">{eligibility.message}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-xl shadow-indigo-600/20"
+          >
+            Back to Home
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (isSuccess) {
     return (
@@ -293,34 +371,41 @@ export const BecomeInstructor: React.FC = () => {
 
               <div
                 className={`relative border-2 border-dashed rounded-[2rem] p-12 text-center transition-all ${
-                  cvUrl
+                  selectedFile
                     ? 'border-green-500/50 bg-green-500/5'
                     : 'border-white/10 hover:border-indigo-500/30 hover:bg-white/5'
                 }`}
               >
                 <input
                   type="file"
-                  onChange={handleFileUpload}
+                  onChange={handleFileChange}
                   accept=".pdf,.doc,.docx"
                   className="absolute inset-0 opacity-0 cursor-pointer"
-                  disabled={isUploading}
+                  disabled={isSubmitting}
                 />
 
-                {isUploading ? (
+                {isSubmitting ? (
                   <div className="space-y-4">
                     <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mx-auto"></div>
                     <p className="text-slate-400 font-bold tracking-widest uppercase text-xs">
-                      Uploading... {uploadProgress}%
+                      {uploadProgress < 100
+                        ? `Uploading CV... ${uploadProgress}%`
+                        : 'Finalizing Application...'}
                     </p>
                   </div>
-                ) : cvUrl ? (
+                ) : selectedFile ? (
                   <div className="space-y-4">
                     <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
                       <CheckCircle className="w-8 h-8 text-green-500" />
                     </div>
                     <div>
-                      <p className="text-green-500 font-bold mb-1">CV Uploaded Successfully</p>
-                      <p className="text-slate-500 text-xs truncate max-w-xs mx-auto">{cvUrl}</p>
+                      <p className="text-green-500 font-bold mb-1">CV Ready to Upload</p>
+                      <p className="text-slate-500 text-xs truncate max-w-xs mx-auto">
+                        {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </p>
+                      <p className="text-[10px] text-slate-600 mt-2 italic">
+                        Click or drag to change file
+                      </p>
                     </div>
                   </div>
                 ) : (
@@ -343,7 +428,7 @@ export const BecomeInstructor: React.FC = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting || isUploading}
+              disabled={isSubmitting}
               className="w-full h-18 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all shadow-2xl shadow-indigo-600/20 group overflow-hidden relative"
             >
               {isSubmitting ? (
@@ -361,6 +446,52 @@ export const BecomeInstructor: React.FC = () => {
           </form>
         </motion.div>
       </div>
+
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        title="Confirm Application"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setIsConfirmModalOpen(false)}
+              className="px-6 py-2 text-sm font-bold text-slate-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmSubmit}
+              className="px-8 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 transition-all"
+            >
+              Confirm & Submit
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-slate-300">
+            Are you sure you want to submit your application to become an instructor?
+          </p>
+          <div className="bg-white/5 rounded-2xl p-4 border border-white/5 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">Name:</span>
+              <span className="text-white font-medium">{formData?.fullName}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">Email:</span>
+              <span className="text-white font-medium">{formData?.email}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">CV:</span>
+              <span className="text-indigo-400 font-medium">{selectedFile?.name}</span>
+            </div>
+          </div>
+          <p className="text-xs text-slate-500 italic">
+            * Once submitted, you cannot edit your application until it has been reviewed by our
+            team.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 };

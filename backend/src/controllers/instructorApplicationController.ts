@@ -4,11 +4,20 @@ import { sendInstructorApprovalEmail, sendInstructorRejectionEmail } from '../se
 import { UserRole } from '../models/User';
 import Notification, { NotificationType } from '../models/Notification';
 import { sendNotification } from '../utils/socket';
+import { Op } from 'sequelize';
+
+const COOLDOWN_DAYS = 30;
 
 export const submitApplication = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).user.id;
     const { fullName, email, phone, bio, cvUrl, age, gender } = req.body;
+
+    // Check if user is already an instructor
+    const user = await User.findByPk(userId);
+    if (user?.role === UserRole.INSTRUCTOR) {
+      return res.status(400).json({ message: 'You are already an instructor.' });
+    }
 
     // Check if user already has a pending application
     const existingApplication = await InstructorApplication.findOne({
@@ -17,6 +26,28 @@ export const submitApplication = async (req: Request, res: Response, next: NextF
 
     if (existingApplication) {
       return res.status(400).json({ message: 'You already have a pending application.' });
+    }
+
+    // Check for cooldown after rejection
+    const lastRejected = await InstructorApplication.findOne({
+      where: {
+        userId,
+        status: 'REJECTED',
+        updatedAt: {
+          [Op.gt]: new Date(Date.now() - COOLDOWN_DAYS * 24 * 60 * 60 * 1000),
+        },
+      },
+      order: [['updatedAt', 'DESC']],
+    });
+
+    if (lastRejected) {
+      const remainingDays = Math.ceil(
+        (lastRejected.updatedAt.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000 - Date.now()) /
+          (24 * 60 * 60 * 1000)
+      );
+      return res.status(400).json({
+        message: `Your previous application was rejected. Please wait ${remainingDays} more days before reapplying.`,
+      });
     }
 
     const application = await InstructorApplication.create({
@@ -160,6 +191,60 @@ export const processApplication = async (req: Request, res: Response, next: Next
       message: `Application ${status.toLowerCase()} successfully.`,
       application,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+export const checkEligibility = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).user.id;
+    const user = await User.findByPk(userId);
+
+    if (user?.role === UserRole.INSTRUCTOR) {
+      return res.status(200).json({
+        eligible: false,
+        reason: 'ALREADY_INSTRUCTOR',
+        message: 'You are already an instructor.',
+      });
+    }
+
+    const pendingApp = await InstructorApplication.findOne({
+      where: { userId, status: 'PENDING' },
+    });
+
+    if (pendingApp) {
+      return res.status(200).json({
+        eligible: false,
+        reason: 'PENDING_APPLICATION',
+        message: 'You have a pending application.',
+      });
+    }
+
+    const lastRejected = await InstructorApplication.findOne({
+      where: {
+        userId,
+        status: 'REJECTED',
+        updatedAt: {
+          [Op.gt]: new Date(Date.now() - COOLDOWN_DAYS * 24 * 60 * 60 * 1000),
+        },
+      },
+      order: [['updatedAt', 'DESC']],
+    });
+
+    if (lastRejected) {
+      const remainingDays = Math.ceil(
+        (lastRejected.updatedAt.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000 - Date.now()) /
+          (24 * 60 * 60 * 1000)
+      );
+      return res.status(200).json({
+        eligible: false,
+        reason: 'COOLDOWN',
+        message: `Please wait ${remainingDays} days before reapplying.`,
+        remainingDays,
+      });
+    }
+
+    res.status(200).json({ eligible: true });
   } catch (error) {
     next(error);
   }
