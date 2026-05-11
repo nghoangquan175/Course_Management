@@ -1,6 +1,15 @@
 'use strict';
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
+
+// Dynamic requirement for User model
+const userModelPath = fs.existsSync(path.resolve(__dirname, '../dist/models/User.js'))
+  ? '../dist/models/User'
+  : '../src/models/User';
+
+const User = require(userModelPath);
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
