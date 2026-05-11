@@ -18,7 +18,10 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY --from=build /app/dist ./dist
-# Copy config for production
+# Copy migrations, seeders and config for production database tasks
+COPY --from=build /app/migrations ./migrations
+COPY --from=build /app/seeders ./seeders
+COPY --from=build /app/.sequelizerc ./.sequelizerc
 COPY --from=build /app/src/config ./dist/config
 
 EXPOSE 5001
