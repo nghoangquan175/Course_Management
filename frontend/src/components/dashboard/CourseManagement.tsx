@@ -60,6 +60,18 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
   initialCourseId,
 }) => {
   const [currentStatus, setCurrentStatus] = useState<CourseStatus | 'all'>('all');
+  const [view, setView] = useState<'list' | 'create' | 'edit' | 'detail' | 'curriculum'>(
+    initialView || 'list'
+  );
+  const [selectedCourse, setSelectedCourse] = useState<CourseData | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [courseToRestore, setCourseToRestore] = useState<string | null>(null);
+  const [isWorkflowModalOpen, setIsWorkflowModalOpen] = useState(false);
+  const [activeWorkflowAction, setActiveWorkflowAction] = useState<string | null>(null);
+  const [courseToProcess, setCourseToProcess] = useState<string | null>(null);
 
   const {
     data: courses = [],
@@ -67,6 +79,8 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     isFetching: isRefreshing,
     refetch: refetchCourses,
   } = useCourses({ status: currentStatus });
+
+  const [, setSearchParams] = useSearchParams();
 
   const onRefresh = (status?: string) => {
     const newStatus = (status as any) || 'all';
@@ -77,11 +91,6 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     }
   };
 
-  const [view, setView] = useState<'list' | 'create' | 'edit' | 'detail' | 'curriculum'>(
-    initialView
-  );
-  const [, setSearchParams] = useSearchParams();
-
   const handleBack = () => {
     setView('list');
     // Clear URL params when going back
@@ -89,41 +98,35 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     if (onRefresh) onRefresh(currentStatus);
   };
 
+  // Sync internal view with props (important for notifications when already on this tab)
+  React.useEffect(() => {
+    const targetView = initialView || 'list';
+    if (targetView !== view) {
+      setTimeout(() => setView(targetView), 0);
+    }
+  }, [initialView]);
+
+  // Sync selected course when initialCourseId changes
+  React.useEffect(() => {
+    if (initialCourseId && initialCourseId !== selectedCourse?.id) {
+      const course = courses.find((c: any) => c.id === initialCourseId);
+      setTimeout(() => {
+        if (course) {
+          setSelectedCourse(course);
+        } else {
+          // Fallback for detail view if courses list not yet loaded
+          setSelectedCourse({ id: initialCourseId } as any);
+        }
+      }, 0);
+    }
+  }, [initialCourseId, courses, selectedCourse?.id]);
+
   // Notify parent of view changes
   React.useEffect(() => {
     if (onViewChange) {
-      onViewChange(view);
+      setTimeout(() => onViewChange(view), 0);
     }
   }, [view, onViewChange]);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<CourseData | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
-  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
-  const [courseToRestore, setCourseToRestore] = useState<string | null>(null);
-  const hasInitializedRef = React.useRef(false);
-
-  // Effect to handle initial course from props
-  React.useEffect(() => {
-    // Only apply initial values if we haven't initialized yet
-    if (hasInitializedRef.current) return;
-
-    if (initialCourseId) {
-      const course = courses.find((c: any) => c.id === initialCourseId);
-      if (course) {
-        setTimeout(() => setSelectedCourse(course), 0);
-        hasInitializedRef.current = true;
-      } else if (initialView === 'detail') {
-        setTimeout(() => setSelectedCourse({ id: initialCourseId } as any), 0);
-        hasInitializedRef.current = true;
-      }
-    }
-  }, [initialView, initialCourseId, courses]);
-
-  // Workflow Modal State
-  const [isWorkflowModalOpen, setIsWorkflowModalOpen] = useState(false);
-  const [activeWorkflowAction, setActiveWorkflowAction] = useState<string | null>(null);
-  const [courseToProcess, setCourseToProcess] = useState<string | null>(null);
 
   const courseActions = useCourseActions();
 
@@ -260,8 +263,14 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     return <CreateCourseForm onBack={handleBack} initialData={selectedCourse} />;
   }
 
-  if (view === 'detail' && selectedCourse) {
-    return <CourseDetailView courseId={selectedCourse.id} onBack={handleBack} isAdmin={isAdmin} />;
+  if (view === 'detail' && (selectedCourse || initialCourseId)) {
+    return (
+      <CourseDetailView
+        courseId={selectedCourse?.id || initialCourseId || ''}
+        onBack={handleBack}
+        isAdmin={isAdmin}
+      />
+    );
   }
 
   if (view === 'curriculum' && selectedCourse) {

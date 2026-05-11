@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, BookOpen, Users, BarChart3, Bell, FileText } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -37,9 +37,42 @@ export const AdminDashboard: React.FC = () => {
     return 'overview';
   });
 
-  const [subView, setSubView] = useState('list');
+  const [subView, setSubView] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('view') || 'list';
+  });
+
+  // Sync activeTab with URL params when they change (e.g., clicking a notification)
+  useEffect(() => {
+    const view = searchParams.get('view');
+    const courseId = searchParams.get('courseId');
+    const tab = searchParams.get('tab');
+    const appId = searchParams.get('appId');
+
+    // Use setTimeout to avoid synchronous cascading renders (satisfies lint rules)
+    setTimeout(() => {
+      if (view === 'detail' && courseId) {
+        setActiveTab('courses');
+        setSubView('detail');
+      } else if (tab === 'applications' || appId) {
+        setActiveTab('applications');
+      } else if (tab === 'notifications') {
+        setActiveTab('notifications');
+      } else if (!view && !tab && !appId) {
+        // If we are on base /admin, reset to overview or current tab's list
+        setSubView('list');
+      }
+    }, 0);
+  }, [searchParams]);
 
   const { data: adminStats, isLoading: isLoadingStats } = useAdminDashboard();
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    // Clear URL params when switching tabs manually via sidebar
+    navigate('/admin');
+    setSubView('list');
+  };
 
   const sidebarItems: SidebarItem[] = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" /> },
@@ -188,7 +221,7 @@ export const AdminDashboard: React.FC = () => {
       <Sidebar
         items={sidebarItems}
         activeItem={activeTab}
-        onItemClick={setActiveTab}
+        onItemClick={handleTabChange}
         title="ADMIN DASHBOARD"
         onLogout={() => setIsLogoutModalOpen(true)}
         userRoleLabel="Super Admin"
