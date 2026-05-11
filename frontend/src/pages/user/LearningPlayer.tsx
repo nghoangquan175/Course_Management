@@ -30,6 +30,13 @@ export const LearningPlayer: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { state: { from: location.pathname } });
+    }
+  }, [user, navigate, location]);
   const [course, setCourse] = useState<any>(null);
   const [currentLessonIdx, setCurrentLessonIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);

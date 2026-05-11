@@ -2,22 +2,25 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Briefcase, 
-  Upload, 
-  CheckCircle, 
-  ChevronRight, 
+import {
+  User,
+  Mail,
+  Phone,
+  Briefcase,
+  Upload,
+  CheckCircle,
+  ChevronRight,
   FileText,
   Calendar,
-  Users
+  Users,
 } from 'lucide-react';
 import { cloudinaryService } from '../../api/cloudinaryService';
 import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../hooks/useAuth';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const registrationSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -32,6 +35,17 @@ const registrationSchema = z.object({
 type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 export const BecomeInstructor: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!user) {
+      toast.error('Please login to apply as an instructor');
+      navigate('/login', { state: { from: location.pathname } });
+    }
+  }, [user, navigate, location]);
+
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,7 +61,7 @@ export const BecomeInstructor: React.FC = () => {
     resolver: zodResolver(registrationSchema),
     defaultValues: {
       gender: 'MALE',
-    }
+    },
   });
 
   const cvUrl = watch('cvUrl');
@@ -65,11 +79,8 @@ export const BecomeInstructor: React.FC = () => {
     setUploadProgress(0);
 
     try {
-      const data = await cloudinaryService.uploadMedia(
-        file, 
-        'raw', 
-        'instructor_cvs',
-        (percent) => setUploadProgress(percent)
+      const data = await cloudinaryService.uploadMedia(file, 'raw', 'instructor_cvs', (percent) =>
+        setUploadProgress(percent)
       );
       setValue('cvUrl', data.secure_url);
       toast.success('CV uploaded successfully');
@@ -97,7 +108,7 @@ export const BecomeInstructor: React.FC = () => {
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="max-w-2xl w-full bg-slate-900 border border-white/10 rounded-[3rem] p-12 text-center shadow-2xl"
@@ -107,10 +118,11 @@ export const BecomeInstructor: React.FC = () => {
           </div>
           <h2 className="text-4xl font-black text-white mb-4">Application Submitted!</h2>
           <p className="text-slate-400 text-lg leading-relaxed mb-10">
-            Thank you for your interest in joining CourseEdu. Our team will review your application and documents carefully. 
-            You will receive an email notification once a decision has been made.
+            Thank you for your interest in joining CourseEdu. Our team will review your application
+            and documents carefully. You will receive an email notification once a decision has been
+            made.
           </p>
-          <a 
+          <a
             href="/"
             className="inline-block px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-xl shadow-indigo-600/20"
           >
@@ -125,8 +137,8 @@ export const BecomeInstructor: React.FC = () => {
     <div className="min-h-screen bg-slate-950 text-slate-50 py-20 px-6 relative">
       {/* Back to Home Button */}
       <div className="absolute top-8 left-8">
-        <a 
-          href="/" 
+        <a
+          href="/"
           className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-bold text-sm group"
         >
           <div className="w-8 h-8 bg-white/5 rounded-full flex items-center justify-center group-hover:bg-white/10 transition-all">
@@ -138,20 +150,21 @@ export const BecomeInstructor: React.FC = () => {
 
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="text-5xl lg:text-6xl font-black mb-6 tracking-tight">
-              Partner with <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Us</span>
+              Partner with{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                Us
+              </span>
             </h1>
             <p className="text-slate-400 text-xl max-w-2xl mx-auto leading-relaxed">
-              Join EduCoreAcademy to share your knowledge and build a strong learning community together.
+              Join EduCoreAcademy to share your knowledge and build a strong learning community
+              together.
             </p>
           </motion.div>
         </div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-slate-900 border border-white/10 rounded-[3rem] p-8 md:p-16 shadow-2xl shadow-indigo-500/5"
@@ -167,10 +180,14 @@ export const BecomeInstructor: React.FC = () => {
                   {...register('fullName')}
                   placeholder="Enter your full name"
                   className={`w-full bg-white/5 border rounded-2xl p-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all ${
-                    errors.fullName ? 'border-red-500/50' : 'border-white/10 focus:border-indigo-500/50'
+                    errors.fullName
+                      ? 'border-red-500/50'
+                      : 'border-white/10 focus:border-indigo-500/50'
                   }`}
                 />
-                {errors.fullName && <p className="text-red-500 text-xs font-medium">{errors.fullName.message}</p>}
+                {errors.fullName && (
+                  <p className="text-red-500 text-xs font-medium">{errors.fullName.message}</p>
+                )}
               </div>
 
               {/* Email */}
@@ -182,10 +199,14 @@ export const BecomeInstructor: React.FC = () => {
                   {...register('email')}
                   placeholder="Enter your email address"
                   className={`w-full bg-white/5 border rounded-2xl p-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all ${
-                    errors.email ? 'border-red-500/50' : 'border-white/10 focus:border-indigo-500/50'
+                    errors.email
+                      ? 'border-red-500/50'
+                      : 'border-white/10 focus:border-indigo-500/50'
                   }`}
                 />
-                {errors.email && <p className="text-red-500 text-xs font-medium">{errors.email.message}</p>}
+                {errors.email && (
+                  <p className="text-red-500 text-xs font-medium">{errors.email.message}</p>
+                )}
               </div>
 
               {/* Phone */}
@@ -197,10 +218,14 @@ export const BecomeInstructor: React.FC = () => {
                   {...register('phone')}
                   placeholder="Enter your phone number"
                   className={`w-full bg-white/5 border rounded-2xl p-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all ${
-                    errors.phone ? 'border-red-500/50' : 'border-white/10 focus:border-indigo-500/50'
+                    errors.phone
+                      ? 'border-red-500/50'
+                      : 'border-white/10 focus:border-indigo-500/50'
                   }`}
                 />
-                {errors.phone && <p className="text-red-500 text-xs font-medium">{errors.phone.message}</p>}
+                {errors.phone && (
+                  <p className="text-red-500 text-xs font-medium">{errors.phone.message}</p>
+                )}
               </div>
 
               {/* Age */}
@@ -216,7 +241,9 @@ export const BecomeInstructor: React.FC = () => {
                     errors.age ? 'border-red-500/50' : 'border-white/10 focus:border-indigo-500/50'
                   }`}
                 />
-                {errors.age && <p className="text-red-500 text-xs font-medium">{errors.age.message}</p>}
+                {errors.age && (
+                  <p className="text-red-500 text-xs font-medium">{errors.age.message}</p>
+                )}
               </div>
 
               {/* Gender */}
@@ -228,9 +255,15 @@ export const BecomeInstructor: React.FC = () => {
                   {...register('gender')}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
                 >
-                  <option value="MALE" className="bg-slate-900">Male</option>
-                  <option value="FEMALE" className="bg-slate-900">Female</option>
-                  <option value="OTHER" className="bg-slate-900">Other</option>
+                  <option value="MALE" className="bg-slate-900">
+                    Male
+                  </option>
+                  <option value="FEMALE" className="bg-slate-900">
+                    Female
+                  </option>
+                  <option value="OTHER" className="bg-slate-900">
+                    Other
+                  </option>
                 </select>
               </div>
             </div>
@@ -248,7 +281,9 @@ export const BecomeInstructor: React.FC = () => {
                   errors.bio ? 'border-red-500/50' : 'border-white/10 focus:border-indigo-500/50'
                 }`}
               />
-              {errors.bio && <p className="text-red-500 text-xs font-medium">{errors.bio.message}</p>}
+              {errors.bio && (
+                <p className="text-red-500 text-xs font-medium">{errors.bio.message}</p>
+              )}
             </div>
 
             {/* CV Upload */}
@@ -256,10 +291,12 @@ export const BecomeInstructor: React.FC = () => {
               <label className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
                 <FileText className="w-4 h-4 text-indigo-400" /> Curriculum Vitae (CV) *
               </label>
-              
-              <div 
+
+              <div
                 className={`relative border-2 border-dashed rounded-[2rem] p-12 text-center transition-all ${
-                  cvUrl ? 'border-green-500/50 bg-green-500/5' : 'border-white/10 hover:border-indigo-500/30 hover:bg-white/5'
+                  cvUrl
+                    ? 'border-green-500/50 bg-green-500/5'
+                    : 'border-white/10 hover:border-indigo-500/30 hover:bg-white/5'
                 }`}
               >
                 <input
@@ -269,11 +306,13 @@ export const BecomeInstructor: React.FC = () => {
                   className="absolute inset-0 opacity-0 cursor-pointer"
                   disabled={isUploading}
                 />
-                
+
                 {isUploading ? (
                   <div className="space-y-4">
                     <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mx-auto"></div>
-                    <p className="text-slate-400 font-bold tracking-widest uppercase text-xs">Uploading... {uploadProgress}%</p>
+                    <p className="text-slate-400 font-bold tracking-widest uppercase text-xs">
+                      Uploading... {uploadProgress}%
+                    </p>
                   </div>
                 ) : cvUrl ? (
                   <div className="space-y-4">
@@ -297,7 +336,9 @@ export const BecomeInstructor: React.FC = () => {
                   </div>
                 )}
               </div>
-              {errors.cvUrl && <p className="text-red-500 text-xs font-medium">{errors.cvUrl.message}</p>}
+              {errors.cvUrl && (
+                <p className="text-red-500 text-xs font-medium">{errors.cvUrl.message}</p>
+              )}
             </div>
 
             {/* Submit Button */}

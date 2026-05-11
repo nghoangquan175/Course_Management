@@ -9,6 +9,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema } from '../../utils/validations';
 import type { LoginInput } from '../../utils/validations';
+import { useLocation } from 'react-router-dom';
 
 import { Logo } from '../../components/common/Logo';
 
@@ -16,7 +17,11 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
+
+  // Get the redirect path from state, default to home
+  const from = location.state?.from || '/';
 
   const {
     register,
@@ -35,7 +40,9 @@ export const LoginPage: React.FC = () => {
       const response = await authService.login(data);
       login(response.data.user, response.data.accessToken);
       toast.success('Login successful!');
-      navigate('/');
+
+      // Redirect back to original page or home
+      navigate(from, { replace: true });
     } catch (error: any) {
       const message = error.response?.data?.message || 'Login failed';
 
