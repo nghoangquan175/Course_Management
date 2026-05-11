@@ -18,7 +18,7 @@ import { useAdminDashboard } from '../../hooks/useAdminDashboard';
 import { formatDistanceToNow } from 'date-fns';
 
 export const AdminDashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);

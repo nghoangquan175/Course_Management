@@ -27,7 +27,7 @@ export const AchievementsTab: React.FC = () => {
       <div className="flex-1 overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/10 pb-10">
         {completedCourses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {completedCourses.map((course) => (
+            {completedCourses.map((course: any) => (
               <div
                 key={course.id}
                 className="glass rounded-[2rem] border border-white/10 overflow-hidden group hover:border-green-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-green-500/10 flex flex-col h-full"

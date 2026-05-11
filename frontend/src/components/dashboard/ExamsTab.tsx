@@ -24,7 +24,7 @@ export const ExamsTab: React.FC = () => {
       <div className="flex-1 overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/10 pb-10">
         {results.length > 0 ? (
           <div className="space-y-4">
-            {results.map((result) => {
+            {results.map((result: any) => {
               const lesson = result.exam?.lesson;
               const course = lesson?.course;
 

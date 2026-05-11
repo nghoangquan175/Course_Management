@@ -109,7 +109,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     if (hasInitializedRef.current) return;
 
     if (initialCourseId) {
-      const course = courses.find((c) => c.id === initialCourseId);
+      const course = courses.find((c: any) => c.id === initialCourseId);
       if (course) {
         setTimeout(() => setSelectedCourse(course), 0);
         hasInitializedRef.current = true;
@@ -368,7 +368,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                   </div>
                 </div>
               )}
-              {courses.map((course) => (
+              {courses.map((course: any) => (
                 <tr key={course.id} className="hover:bg-white/5 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
@@ -402,7 +402,7 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                   )}
                   <td className="px-6 py-4">
                     <span
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${course.deletedAt ? statusColors['DELETED'] : statusColors[course.status]}`}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${course.deletedAt ? statusColors['DELETED'] : statusColors[course.status as CourseStatus]}`}
                     >
                       {course.deletedAt ? 'DELETED' : course.status}
                     </span>
