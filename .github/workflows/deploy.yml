@@ -73,6 +73,8 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
           build-args: |
             VITE_API_URL=${{ vars.VITE_API_URL }}
+            VITE_CLOUDINARY_CLOUD_NAME=${{ vars.VITE_CLOUDINARY_CLOUD_NAME }}
+            VITE_CLOUDINARY_API_KEY=${{ vars.VITE_CLOUDINARY_API_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
