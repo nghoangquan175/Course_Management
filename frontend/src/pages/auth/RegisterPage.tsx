@@ -9,6 +9,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema } from '../../utils/validations';
 import type { RegisterInput } from '../../utils/validations';
 
+import { Logo } from '../../components/common/Logo';
+
 export const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
@@ -36,12 +38,13 @@ export const RegisterPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="glass p-8 md:p-12 rounded-3xl max-w-md w-full shadow-2xl"
       >
-        <div className="text-center mb-10">
+        <div className="text-center mb-10 flex flex-col items-center">
+          <Logo className="mb-8" textSize="text-3xl" />
           <h2 className="text-3xl font-bold mb-2">Create Account</h2>
           <p className="text-slate-400">Start your learning journey today</p>
         </div>
@@ -86,14 +89,22 @@ export const RegisterPage: React.FC = () => {
                 className={`w-full bg-white/5 border ${errors.password ? 'border-red-500' : 'border-white/10'} rounded-xl py-3 pl-12 pr-4 focus:border-indigo-500 outline-none transition-all`}
               />
             </div>
-            {errors.password && <p className="text-red-500 text-xs ml-1">{errors.password.message}</p>}
+            {errors.password && (
+              <p className="text-red-500 text-xs ml-1">{errors.password.message}</p>
+            )}
           </div>
 
           <button
             disabled={loading}
             className="w-full btn-primary py-4 rounded-xl flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50"
           >
-            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Register <ArrowRight className="w-5 h-5" /></>}
+            {loading ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <>
+                Register <ArrowRight className="w-5 h-5" />
+              </>
+            )}
           </button>
         </form>
 

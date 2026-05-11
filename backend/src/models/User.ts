@@ -8,16 +8,16 @@ export enum UserRole {
 }
 
 class User extends Model {
-  public id!: string;
-  public name!: string;
-  public email!: string;
-  public password!: string;
-  public role!: UserRole;
-  public isActivated!: boolean;
-  public activationToken!: string | null;
-  public activationExpires!: Date | null;
-  public resetPasswordToken!: string | null;
-  public resetPasswordExpires!: Date | null;
+  declare id: string;
+  declare name: string;
+  declare email: string;
+  declare password: string;
+  declare role: UserRole;
+  declare isActivated: boolean;
+  declare activationToken: string | null;
+  declare activationExpires: Date | null;
+  declare resetPasswordToken: string | null;
+  declare resetPasswordExpires: Date | null;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
   public readonly deletedAt!: Date;

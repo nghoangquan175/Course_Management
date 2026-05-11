@@ -17,6 +17,8 @@ const queryClient = new QueryClient({
   },
 });
 
+import { Logo } from './components/common/Logo';
+
 function AppContent() {
   const { isInitializing } = useAuth();
   const [showSlowConnection, setShowSlowConnection] = useState(false);
@@ -32,9 +34,7 @@ function AppContent() {
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-        <h1 className="text-4xl font-bold text-indigo-500 mb-8 tracking-widest animate-pulse">
-          COURSE EDU
-        </h1>
+        <Logo isLink={false} textSize="text-4xl" className="mb-12 animate-pulse" iconSize={32} />
         <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
         <p className="text-slate-400 mb-2">Initializing Management System...</p>
         {showSlowConnection && (

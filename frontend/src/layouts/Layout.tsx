@@ -5,6 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 import { Modal } from '../components/common/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { Logo } from '../components/common/Logo';
+
 export const Layout: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -34,9 +36,7 @@ export const Layout: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-50">
       <header className="h-20 border-b border-white/5 flex items-center sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md">
         <div className="container mx-auto px-6 max-w-[1440px] flex justify-between items-center">
-          <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent tracking-tight">
-            COURSE EDU
-          </Link>
+          <Logo />
 
           <nav className="flex items-center gap-6">
             {user ? (
@@ -49,7 +49,9 @@ export const Layout: React.FC = () => {
                     {user.name.charAt(0)}
                   </div>
                   <span className="text-sm font-semibold text-slate-200">{user.name}</span>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                  />
                 </button>
 
                 <AnimatePresence>
@@ -61,7 +63,9 @@ export const Layout: React.FC = () => {
                       className="absolute right-0 mt-3 w-64 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[60] backdrop-blur-xl"
                     >
                       <div className="p-4 border-b border-white/5">
-                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Signed in as</p>
+                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">
+                          Signed in as
+                        </p>
                         <p className="text-sm font-bold truncate">{user.email}</p>
                       </div>
 
@@ -116,8 +120,18 @@ export const Layout: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center gap-4">
-                <Link to="/login" className="text-sm font-semibold hover:text-indigo-400 transition-colors px-4 py-2">Login</Link>
-                <Link to="/register" className="btn-primary text-sm font-bold px-6 py-2.5 rounded-xl">Sign Up</Link>
+                <Link
+                  to="/login"
+                  className="text-sm font-semibold hover:text-indigo-400 transition-colors px-4 py-2"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="btn-primary text-sm font-bold px-6 py-2.5 rounded-xl"
+                >
+                  Sign Up
+                </Link>
               </div>
             )}
           </nav>
@@ -156,7 +170,10 @@ export const Layout: React.FC = () => {
           </>
         }
       >
-        <p>Are you sure you want to log out of your account? You will need to sign in again to access your courses.</p>
+        <p>
+          Are you sure you want to log out of your account? You will need to sign in again to access
+          your courses.
+        </p>
       </Modal>
     </div>
   );

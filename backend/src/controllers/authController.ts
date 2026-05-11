@@ -19,7 +19,7 @@ const storeRefreshToken = async (userId: string, token: string) => {
   await RefreshToken.create({
     userId,
     token,
-    expiryDate
+    expiryDate,
   });
 };
 
@@ -28,7 +28,9 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     const { name, email, password } = req.body;
 
     const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
+
+    // If email exists and is already activated, prevent re-registration
+    if (existingUser && existingUser.isActivated) {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
@@ -36,18 +38,36 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     const activationToken = crypto.randomBytes(32).toString('hex');
     const activationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      activationToken,
-      activationExpires
-    });
+    if (existingUser && !existingUser.isActivated) {
+      // If email exists but is NOT activated, update info and resend token
+      existingUser.name = name;
+      existingUser.password = hashedPassword;
+      existingUser.activationToken = activationToken;
+      existingUser.activationExpires = activationExpires;
+      await existingUser.save();
+    } else {
+      // If new email, create new user
+      await User.create({
+        name,
+        email,
+        password: hashedPassword,
+        activationToken,
+        activationExpires,
+      });
+    }
 
-    await sendActivationEmail(email, activationToken);
+    try {
+      await sendActivationEmail(email, activationToken);
+    } catch (mailError) {
+      console.error('Failed to send activation email:', mailError);
+      return res.status(500).json({
+        message:
+          'Account created/updated but failed to send activation email. Please try again later or contact support.',
+      });
+    }
 
     res.status(201).json({
-      message: 'Registration successful! Please check your email to activate your account.'
+      message: 'Registration successful! Please check your email to activate your account.',
     });
   } catch (error) {
     next(error);
@@ -59,9 +79,14 @@ export const activateAccount = async (req: Request, res: Response, next: NextFun
     const { token } = req.params;
     const user = await User.findOne({ where: { activationToken: token } });
 
-    if (!user) return res.status(400).json({ status: 'invalid', message: 'Invalid activation link' });
-    if (user.isActivated) return res.status(200).json({ status: 'already_active', message: 'Account already activated' });
-    if (user.activationExpires && user.activationExpires < new Date()) return res.status(400).json({ status: 'expired', message: 'Activation link has expired' });
+    if (!user)
+      return res.status(400).json({ status: 'invalid', message: 'Invalid activation link' });
+    if (user.isActivated)
+      return res
+        .status(200)
+        .json({ status: 'already_active', message: 'Account already activated' });
+    if (user.activationExpires && user.activationExpires < new Date())
+      return res.status(400).json({ status: 'expired', message: 'Activation link has expired' });
 
     user.isActivated = true;
     user.activationToken = null;
@@ -97,12 +122,12 @@ const handleLogin = async (user: User, res: Response) => {
     httpOnly: true,
     secure: isProduction && useHTTPS,
     sameSite: useHTTPS ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   return res.status(200).json({
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
-    accessToken
+    accessToken,
   });
 };
 
@@ -112,7 +137,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     const user = await User.findOne({ where: { email } });
 
     // Check credentials first
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
@@ -136,13 +161,15 @@ export const adminLogin = async (req: Request, res: Response, next: NextFunction
     const { email, password } = req.body;
     const user = await User.findOne({ where: { email } });
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     // Role restriction: Only Admins can login here
     if (user.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Access Denied. This portal is for Administrators only.' });
+      return res
+        .status(403)
+        .json({ message: 'Access Denied. This portal is for Administrators only.' });
     }
 
     await handleLogin(user, res);
@@ -224,21 +251,26 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
     const { token } = req.params;
     const { password } = req.body;
 
+    // Find user by token first to distinguish between "not found" and "expired"
     const user = await User.findOne({
-      where: {
-        resetPasswordToken: token,
-        resetPasswordExpires: { [Op.gt]: new Date() }
-      }
+      where: { resetPasswordToken: token },
     });
 
-    if (!user) return res.status(400).json({ message: 'Invalid or expired token' });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid reset token' });
+    }
+
+    // Check if token has expired
+    if (user.resetPasswordExpires && user.resetPasswordExpires < new Date()) {
+      return res.status(400).json({ message: 'Reset token has expired' });
+    }
 
     user.password = await bcrypt.hash(password, 12);
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
     await user.save();
 
-    // Revoke all tokens for security
+    // Revoke all refresh tokens for security upon password change
     await RefreshToken.destroy({ where: { userId: user.id } });
 
     res.status(200).json({ message: 'Password reset successful' });
@@ -250,7 +282,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
 export const getMe = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await User.findByPk(req.user?.id, {
-      attributes: { exclude: ['password'] }
+      attributes: { exclude: ['password'] },
     });
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.status(200).json(user);

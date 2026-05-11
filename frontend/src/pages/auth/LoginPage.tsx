@@ -10,6 +10,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema } from '../../utils/validations';
 import type { LoginInput } from '../../utils/validations';
 
+import { Logo } from '../../components/common/Logo';
+
 export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -36,13 +38,13 @@ export const LoginPage: React.FC = () => {
       navigate('/');
     } catch (error: any) {
       const message = error.response?.data?.message || 'Login failed';
-      
+
       if (message.toLowerCase().includes('email') || message.toLowerCase().includes('password')) {
-         // Focus error only on password and clear it
-         setError('password', { type: 'manual', message: message });
-         setValue('password', '');
+        // Focus error only on password and clear it
+        setError('password', { type: 'manual', message: message });
+        setValue('password', '');
       } else {
-         setFormError(message);
+        setFormError(message);
       }
     } finally {
       setLoading(false);
@@ -51,18 +53,19 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="glass p-8 md:p-12 rounded-3xl max-w-md w-full shadow-2xl"
       >
-        <div className="text-center mb-10">
+        <div className="text-center mb-10 flex flex-col items-center">
+          <Logo className="mb-8" textSize="text-3xl" />
           <h2 className="text-3xl font-bold mb-2">Welcome Back</h2>
           <p className="text-slate-400">Sign in to continue your learning journey</p>
         </div>
 
         {formError && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-500 text-sm"
@@ -100,9 +103,17 @@ export const LoginPage: React.FC = () => {
                 className={`w-full bg-white/5 border ${errors.password ? 'border-red-500' : 'border-white/10'} rounded-xl py-3 pl-12 pr-4 focus:border-indigo-500 outline-none transition-all`}
               />
             </div>
-            {errors.password && <p className="text-red-500 text-xs ml-1">{errors.password.message}</p>}
+            {errors.password && (
+              <p className="text-red-500 text-xs ml-1">{errors.password.message}</p>
+            )}
             <div className="flex justify-end items-center ml-1">
-              <Link to="/forgot-password" title="Forgot Password?" className="text-xs text-indigo-400 hover:underline">Forgot Password?</Link>
+              <Link
+                to="/forgot-password"
+                title="Forgot Password?"
+                className="text-xs text-indigo-400 hover:underline"
+              >
+                Forgot Password?
+              </Link>
             </div>
           </div>
 
@@ -110,7 +121,13 @@ export const LoginPage: React.FC = () => {
             disabled={loading}
             className="w-full btn-primary py-4 rounded-xl flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50"
           >
-            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Sign In <ArrowRight className="w-5 h-5" /></>}
+            {loading ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <>
+                Sign In <ArrowRight className="w-5 h-5" />
+              </>
+            )}
           </button>
         </form>
 

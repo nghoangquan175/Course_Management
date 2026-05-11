@@ -135,6 +135,10 @@ jobs:
             echo "🚀 Running database migrations..."
             docker compose run --rm backend npx sequelize-cli db:migrate || echo "⚠️ Migration failed, but continuing deployment..."
 
+            # Run database seeding
+            echo "🌱 Seeding database..."
+            docker compose run --rm backend npx sequelize-cli db:seed:all || echo "⚠️ Seeding failed, but continuing deployment..."
+
             # Restart containers with new images
             echo "🆙 Starting all services..."
             docker compose up -d --remove-orphans
