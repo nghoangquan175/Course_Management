@@ -18,11 +18,11 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY --from=build /app/dist ./dist
-# Copy migrations, seeders and config for production database tasks
-COPY --from=build /app/migrations ./migrations
-COPY --from=build /app/seeders ./seeders
-COPY --from=build /app/.sequelizerc ./.sequelizerc
-COPY --from=build /app/src/config ./dist/config
+# Copy migrations, seeders and config directly from context
+COPY migrations ./migrations
+COPY seeders ./seeders
+COPY .sequelizerc ./.sequelizerc
+COPY src/config ./dist/config
 
 EXPOSE 5001
 
