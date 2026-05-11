@@ -31,24 +31,24 @@ export const DashboardSwitcher: React.FC = () => {
   }, []);
 
   const menuItems = [
-    { id: 'home', label: 'Main Website', path: '/', icon: <Home className="w-4 h-4" /> },
+    { id: 'home', label: 'Homepage', path: '/', icon: <Home className="w-4 h-4" /> },
     {
       id: 'student',
-      label: 'Student Portal',
+      label: 'Student Dashboard',
       path: '/dashboard',
       icon: <GraduationCap className="w-4 h-4" />,
       roles: ['USER', 'INSTRUCTOR', 'ADMIN'],
     },
     {
       id: 'instructor',
-      label: 'Instructor Hub',
+      label: 'Instructor Dashboard',
       path: '/instructor/dashboard',
       icon: <Briefcase className="w-4 h-4" />,
       roles: ['INSTRUCTOR', 'ADMIN'],
     },
     {
       id: 'admin',
-      label: 'Admin Console',
+      label: 'Admin Dashboard',
       path: '/admin',
       icon: <ShieldCheck className="w-4 h-4" />,
       roles: ['ADMIN'],

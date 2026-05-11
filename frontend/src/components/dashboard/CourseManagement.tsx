@@ -20,7 +20,7 @@ import { CreateCourseForm } from '../../pages/instructor/CreateCourseForm';
 import { CourseDetailView } from './CourseDetailView';
 import { CurriculumEditor } from './CurriculumEditor';
 import { Modal } from '../common/Modal';
-import { useCourseActions } from '../../hooks/useCourseQueries';
+import { useCourseActions, useCourses } from '../../hooks/useCourseQueries';
 import { useSearchParams } from 'react-router-dom';
 
 export type CourseStatus =
@@ -43,32 +43,40 @@ export interface CourseData {
 }
 
 interface CourseManagementProps {
-  courses: CourseData[];
   showCreateButton?: boolean;
   isAdmin?: boolean;
-  onRefresh?: (status?: string) => void;
-  currentStatus?: CourseStatus | 'all';
-  isLoading?: boolean;
   onViewChange?: (view: string) => void;
   currentUserId?: string;
   initialView?: 'list' | 'create' | 'edit' | 'detail' | 'curriculum';
   initialCourseId?: string;
-  isRefreshing?: boolean;
 }
 
 export const CourseManagement: React.FC<CourseManagementProps> = ({
-  courses,
   showCreateButton = true,
   isAdmin = false,
-  onRefresh,
-  currentStatus = 'all',
-  isLoading = false,
   onViewChange,
   currentUserId,
   initialView = 'list',
   initialCourseId,
-  isRefreshing = false,
 }) => {
+  const [currentStatus, setCurrentStatus] = useState<CourseStatus | 'all'>('all');
+
+  const {
+    data: courses = [],
+    isLoading,
+    isFetching: isRefreshing,
+    refetch: refetchCourses,
+  } = useCourses({ status: currentStatus });
+
+  const onRefresh = (status?: string) => {
+    const newStatus = (status as any) || 'all';
+    if (newStatus === currentStatus) {
+      refetchCourses();
+    } else {
+      setCurrentStatus(newStatus);
+    }
+  };
+
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'detail' | 'curriculum'>(
     initialView
   );
@@ -294,18 +302,20 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                   </th>
                 )}
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  <div className="flex items-center gap-2 relative">
+                  <div
+                    className="flex items-center gap-2 relative cursor-pointer hover:text-white transition-colors group/status"
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  >
                     <span className={currentStatus !== 'all' ? 'text-indigo-400' : ''}>
                       Status {currentStatus !== 'all' && `(${currentStatus.replace('_', ' ')})`}
                     </span>
-                    <button
-                      onClick={() => setIsFilterOpen(!isFilterOpen)}
-                      className={`p-1 rounded-md transition-all ${isFilterOpen ? 'bg-indigo-500/20 text-indigo-400' : 'hover:bg-white/10 text-slate-500'}`}
+                    <div
+                      className={`p-1 rounded-md transition-all ${isFilterOpen ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-500 group-hover/status:bg-white/5'}`}
                     >
                       <ChevronDown
                         className={`w-3 h-3 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`}
                       />
-                    </button>
+                    </div>
                     <AnimatePresence>
                       {isFilterOpen && (
                         <>

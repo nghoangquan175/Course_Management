@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import * as cloudinaryController from '../controllers/cloudinaryController';
-import { protect, authorize } from '../middleware/auth';
+import { protect } from '../middleware/auth';
 
 const router = Router();
 
-// Only logged in users (instructors/admins) can get upload signatures
-router.get('/signature', protect, authorize('INSTRUCTOR', 'ADMIN'), cloudinaryController.getSignature);
+// All logged in users can get upload signatures (e.g., users uploading CVs for instructor applications)
+router.get('/signature', protect, cloudinaryController.getSignature);
 
 export default router;

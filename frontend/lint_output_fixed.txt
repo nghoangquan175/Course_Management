@@ -1,0 +1,237 @@
+﻿
+> frontend@0.0.0 lint
+> eslint .
+
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\api\authService.ts
+   4:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   5:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   6:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  11:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\api\examService.ts
+  24:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\api\lessonService.ts
+   9:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  14:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\api\notificationService.ts
+  21:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\course\CourseReviewModal.tsx
+  57:18  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\course\CourseReviewModal.tsx:57:18
+  55 |   });
+  56 |
+> 57 |   const rating = watch('rating');
+     |                  ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  58 |
+  59 |   useEffect(() => {
+  60 |     if (!isOpen) {  react-hooks/incompatible-library
+  79:26  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\course\EnrolledCourseCard.tsx
+  16:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\dashboard\AchievementsTab.tsx
+   6:11  error    An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowInterfaces' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+  10:55  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\dashboard\AdminNotifications.tsx
+  17:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\dashboard\CourseDetailView.tsx
+   39:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   40:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   76:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  184:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  394:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  397:47  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  400:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  451:68  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  512:58  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\dashboard\CourseManagement.tsx
+   72:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:71  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  176:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  399:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  562:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  564:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\dashboard\CurriculumEditor.tsx
+   96:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  161:14  warning  'error' is defined but never used                                                                                               @typescript-eslint/no-unused-vars
+  363:14  warning  'error' is defined but never used                                                                                               @typescript-eslint/no-unused-vars
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\dashboard\ExamEditor.tsx
+   16:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  133:14  warning  'error' is defined but never used                                                                                               @typescript-eslint/no-unused-vars
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\dashboard\InstructorApplicationManagement.tsx
+   23:50  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   32:50  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   42:41  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   43:16  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\dashboard\InstructorApplicationManagement.tsx:43:16
+  41 |     if (appId && applications.length > 0) {
+  42 |       const app = applications.find((a: any) => a.id === appId);
+> 43 |       if (app) setSelectedApp(app);
+     |                ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  44 |     } else if (!appId) {
+  45 |       setSelectedApp(null);
+  46 |     }  react-hooks/set-state-in-effect
+   49:34  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  299:58  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  327:40  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\dashboard\MyCoursesTab.tsx
+  11:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  61:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\dashboard\NotificationBell.tsx
+   32:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   37:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   39:71  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   79:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  145:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\components\dashboard\OverviewTab.tsx
+  10:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  20:73  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:71  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\contexts\AuthContext.tsx
+   5:9   warning  Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+   8:17  warning  Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  13:14  warning  Fast refresh only works when a file only exports components. Move your React context(s) to a separate file  react-refresh/only-export-components
+  16:36  warning  Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  32:16  warning  'error' is defined but never used                                                                           @typescript-eslint/no-unused-vars
+  57:28  warning  Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\contexts\SocketContext.tsx
+  15:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\hooks\useCourseQueries.ts
+   56:83  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   85:71  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   88:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  122:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\hooks\useInstructorApplications.ts
+  25:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\Home.tsx
+  17:68  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\admin\AdminDashboard.tsx
+   21:11  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   70:54  warning  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  126:58  warning  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\auth\ActivationStatusPage.tsx
+  29:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\auth\AdminLoginPage.tsx
+  46:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\auth\ForgotPasswordPage.tsx
+  20:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\auth\LoginPage.tsx
+  54:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\auth\RegisterPage.tsx
+  32:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\auth\ResetPasswordPage.tsx
+  29:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\instructor\CreateCourseForm.tsx
+   74:16  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  125:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\instructor\InstructorDashboard.tsx
+  62:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\user\BecomeInstructor.tsx
+   66:17  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\user\BecomeInstructor.tsx:66:17
+  64 |   });
+  65 |
+> 66 |   const cvUrl = watch('cvUrl');
+     |                 ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  67 |
+  68 |   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  69 |     const file = e.target.files?.[0];  react-hooks/incompatible-library
+  100:21  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\user\ExamPlayer.tsx
+   22:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   31:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   64:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   64:57  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   70:16  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+   94:14  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  355:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  447:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\user\LearningPlayer.tsx
+   40:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   52:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   55:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   77:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   77:47  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   87:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:22  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  107:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  119:60  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  134:16  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  160:16  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  315:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  332:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  533:60  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  585:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\user\PublicCourseDetail.tsx
+   48:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  137:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\pages\user\UserDashboard.tsx
+  32:74  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  35:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\MOHA SOFTWARE\Project\Course Management\frontend\src\utils\videoUtils.ts
+  25:12  warning  '_e' is defined but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 118 problems (2 errors, 116 warnings)
+

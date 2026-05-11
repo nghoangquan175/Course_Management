@@ -202,9 +202,34 @@ export const LearningPlayer: React.FC = () => {
   }, [currentLesson]);
 
   const handleLoadedMetadata = () => {
-    if (videoRef.current && lastTime > 0 && !isResumed) {
-      videoRef.current.currentTime = lastTime;
-      setIsResumed(true);
+    if (videoRef.current) {
+      // Restore settings from localStorage
+      const savedVolume = localStorage.getItem('videoVolume');
+      const savedRate = localStorage.getItem('videoPlaybackRate');
+
+      if (savedVolume !== null) {
+        videoRef.current.volume = parseFloat(savedVolume);
+      }
+      if (savedRate !== null) {
+        videoRef.current.playbackRate = parseFloat(savedRate);
+      }
+
+      if (lastTime > 0 && !isResumed) {
+        videoRef.current.currentTime = lastTime;
+        setIsResumed(true);
+      }
+    }
+  };
+
+  const handleRateChange = () => {
+    if (videoRef.current) {
+      localStorage.setItem('videoPlaybackRate', videoRef.current.playbackRate.toString());
+    }
+  };
+
+  const handleVolumeChange = () => {
+    if (videoRef.current) {
+      localStorage.setItem('videoVolume', videoRef.current.volume.toString());
     }
   };
 
@@ -392,6 +417,8 @@ export const LearningPlayer: React.FC = () => {
                   autoPlay
                   onTimeUpdate={handleTimeUpdate}
                   onLoadedMetadata={handleLoadedMetadata}
+                  onRateChange={handleRateChange}
+                  onVolumeChange={handleVolumeChange}
                   onPause={() => syncProgress()}
                 />
               ) : (

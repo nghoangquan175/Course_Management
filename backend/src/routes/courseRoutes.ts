@@ -1,16 +1,20 @@
 import { Router } from 'express';
 import * as courseController from '../controllers/courseController';
-import { protect, authorize } from '../middleware/auth';
+import { protect, authorize, optionalProtect } from '../middleware/auth';
 
 const router = Router();
 
-// All routes here require authentication
-router.use(protect);
+// Protected routes that should not conflict with /:id
+router.get('/enrolled', protect, courseController.getEnrolledCourses);
+router.get('/management', protect, courseController.getAllCourses);
+router.get('/management/:id', protect, courseController.getCourseById);
 
-// Routes accessible by all authenticated users (Students, Instructors, Admins)
-router.get('/enrolled', courseController.getEnrolledCourses);
-router.get('/', courseController.getAllCourses);
-router.get('/:id', courseController.getCourseById);
+// Public routes
+router.get('/', optionalProtect, courseController.getAllCourses);
+router.get('/:id', optionalProtect, courseController.getCourseById);
+
+// Protected routes (strictly required authentication)
+router.use(protect);
 router.get('/lessons/:lessonId', courseController.getLessonDetail);
 router.post('/:id/enroll', courseController.enrollCourse);
 

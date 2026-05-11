@@ -74,6 +74,14 @@ export const getAllCourses = async (req: Request, res: Response, next: NextFunct
           { [Op.and]: [{ status: 'DRAFT' }, { instructorId: req.user.id }] },
         ];
       }
+    } else {
+      // For GUESTS or STUDENTS, they only see PUBLISHED courses by default
+      // unless a specific public status is requested (but even then, we restrict to safe ones)
+      if (status && ['PUBLISHED', 'UNPUBLISHED'].includes(status as string)) {
+        where.status = status;
+      } else {
+        where.status = 'PUBLISHED';
+      }
     }
 
     const courses = await Course.findAll({

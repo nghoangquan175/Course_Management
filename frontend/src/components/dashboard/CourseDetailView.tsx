@@ -19,10 +19,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { examService } from '../../api/examService';
-import { courseService } from '../../api/courseService';
 import { toast } from 'react-hot-toast';
 import { getStreamingUrl } from '../../utils/videoUtils';
-import { useCourseActions } from '../../hooks/useCourseQueries';
+import { useCourseActions, useCourseDetail } from '../../hooks/useCourseQueries';
 import { Modal } from '../common/Modal';
 
 interface CourseDetailViewProps {
@@ -36,8 +35,7 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({
   onBack,
   isAdmin = false,
 }) => {
-  const [course, setCourse] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: course, isLoading } = useCourseDetail(courseId, true);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [exam, setExam] = useState<any>(null);
   const [isExamLoading, setIsExamLoading] = useState(false);
@@ -49,22 +47,6 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({
   const [rejectionReason, setRejectionReason] = useState('');
 
   const courseActions = useCourseActions();
-
-  useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        const data = await courseService.getById(courseId);
-        setCourse(data);
-      } catch (error) {
-        toast.error('Failed to load course details');
-        onBack();
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDetail();
-  }, [courseId]);
 
   useEffect(() => {
     if (selectedLesson) {
@@ -409,6 +391,21 @@ export const CourseDetailView: React.FC<CourseDetailViewProps> = ({
                           controlsList="nodownload"
                           playsInline
                           onContextMenu={(e) => e.preventDefault()}
+                          onRateChange={(e: any) => {
+                            localStorage.setItem(
+                              'videoPlaybackRate',
+                              e.target.playbackRate.toString()
+                            );
+                          }}
+                          onVolumeChange={(e: any) => {
+                            localStorage.setItem('videoVolume', e.target.volume.toString());
+                          }}
+                          onLoadedMetadata={(e: any) => {
+                            const savedVolume = localStorage.getItem('videoVolume');
+                            const savedRate = localStorage.getItem('videoPlaybackRate');
+                            if (savedVolume !== null) e.target.volume = parseFloat(savedVolume);
+                            if (savedRate !== null) e.target.playbackRate = parseFloat(savedRate);
+                          }}
                           onError={() => {
                             if (!videoError) {
                               console.warn('HLS fail, falling back to MP4');

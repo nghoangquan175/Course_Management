@@ -14,6 +14,7 @@ import { PublicCourseDetail } from '../pages/user/PublicCourseDetail';
 import { LearningPlayer } from '../pages/user/LearningPlayer';
 import { ExamPlayer } from '../pages/user/ExamPlayer';
 import { BecomeInstructor } from '../pages/user/BecomeInstructor';
+import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
@@ -32,7 +33,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/become-instructor',
-    element: <BecomeInstructor />,
+    element: (
+      <ProtectedRoute>
+        <BecomeInstructor />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/login',
@@ -44,15 +49,27 @@ export const router = createBrowserRouter([
   },
   {
     path: '/admin',
-    element: <AdminDashboard />,
+    element: (
+      <ProtectedRoute allowedRoles={['ADMIN']}>
+        <AdminDashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/dashboard',
-    element: <UserDashboard />,
+    element: (
+      <ProtectedRoute allowedRoles={['USER', 'INSTRUCTOR', 'ADMIN']}>
+        <UserDashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/instructor/dashboard',
-    element: <InstructorDashboard />,
+    element: (
+      <ProtectedRoute allowedRoles={['INSTRUCTOR']}>
+        <InstructorDashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/learning/:id',

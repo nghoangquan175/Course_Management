@@ -1,10 +1,5 @@
 import React, { useState } from 'react';
-import {
-  LayoutDashboard,
-  BookOpen,
-  Trophy,
-  FileText
-} from 'lucide-react';
+import { LayoutDashboard, BookOpen, Trophy, FileText } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../../components/common/Modal';
@@ -13,7 +8,6 @@ import type { SidebarItem } from '../../components/dashboard/Sidebar';
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
 import { FullscreenLoader } from '../../components/common/FullscreenLoader';
 import { AnimatePresence } from 'framer-motion';
-import { useEnrolledCourses } from '../../hooks/useCourseQueries';
 import { CourseReviewModal } from '../../components/course/CourseReviewModal';
 
 // Tab Components
@@ -28,12 +22,9 @@ export const UserDashboard: React.FC = () => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  const [courseStatusTab, setCourseStatusTab] = useState<'in-progress' | 'completed'>('in-progress');
-
-  const {
-    data: enrolledCourses = [],
-    isLoading
-  } = useEnrolledCourses();
+  const [courseStatusTab, setCourseStatusTab] = useState<'in-progress' | 'completed'>(
+    'in-progress'
+  );
 
   const [selectedCourseForReview, setSelectedCourseForReview] = useState<any>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -44,7 +35,7 @@ export const UserDashboard: React.FC = () => {
       name: course.title,
       thumbnailUrl: course.thumbnail,
       instructorName: course.instructor,
-      averageRating: course.rating
+      averageRating: course.rating,
     });
     setIsReviewModalOpen(true);
   };
@@ -59,46 +50,30 @@ export const UserDashboard: React.FC = () => {
   const handleConfirmLogout = async () => {
     setIsLogoutModalOpen(false);
     setIsLoggingOut(true);
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    await new Promise((resolve) => setTimeout(resolve, 1200));
     logout();
     navigate('/login');
   };
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'overview': 
+      case 'overview':
+        return <OverviewTab onRateClick={handleRateCourse} />;
+      case 'my-courses':
         return (
-          <OverviewTab 
-            enrolledCourses={enrolledCourses} 
-            isLoading={isLoading} 
-            onRateClick={handleRateCourse} 
-          />
-        );
-      case 'my-courses': 
-        return (
-          <MyCoursesTab 
-            enrolledCourses={enrolledCourses} 
-            courseStatusTab={courseStatusTab} 
+          <MyCoursesTab
+            courseStatusTab={courseStatusTab}
             setCourseStatusTab={setCourseStatusTab}
             onRateClick={handleRateCourse}
           />
         );
-      case 'exams': 
+      case 'exams':
         return <ExamsTab />;
-      case 'achievements': 
-        return (
-          <AchievementsTab 
-            completedCourses={enrolledCourses.filter((c: any) => c.status === 'COMPLETED')} 
-          />
-        );
-      default: 
-        return (
-          <OverviewTab 
-            enrolledCourses={enrolledCourses} 
-            isLoading={isLoading} 
-            onRateClick={handleRateCourse} 
-          />
-        );
+      case 'achievements':
+        return <AchievementsTab />;
+      default:
+        return <OverviewTab onRateClick={handleRateCourse} />;
+        <br />;
     }
   };
 
@@ -119,10 +94,8 @@ export const UserDashboard: React.FC = () => {
 
       <main className="flex-1 flex flex-col h-full overflow-hidden p-8 gap-8">
         <DashboardHeader placeholder="Search your courses..." />
-        
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {renderContent()}
-        </div>
+
+        <div className="flex-1 overflow-hidden flex flex-col">{renderContent()}</div>
       </main>
 
       <Modal
@@ -131,8 +104,18 @@ export const UserDashboard: React.FC = () => {
         title="Confirm Logout"
         footer={
           <>
-            <button onClick={() => setIsLogoutModalOpen(false)} className="px-6 py-2 text-sm text-slate-400">Cancel</button>
-            <button onClick={handleConfirmLogout} className="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-bold">Logout</button>
+            <button
+              onClick={() => setIsLogoutModalOpen(false)}
+              className="px-6 py-2 text-sm text-slate-400"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmLogout}
+              className="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-bold"
+            >
+              Logout
+            </button>
           </>
         }
       >

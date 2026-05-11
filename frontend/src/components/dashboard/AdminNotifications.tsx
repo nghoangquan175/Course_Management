@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 export const AdminNotifications: React.FC = () => {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
-  const [targetRole, setTargetRole] = useState('USER');
+  const [targetRoles, setTargetRoles] = useState<string[]>(['USER']);
   const [targetType, setTargetType] = useState('role'); // 'role' or 'specific'
   const [specificUserIds, setSpecificUserIds] = useState('');
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -32,6 +32,9 @@ export const AdminNotifications: React.FC = () => {
     if (!title || !message) {
       return toast.error('Title and message are required');
     }
+    if (targetType === 'role' && targetRoles.length === 0) {
+      return toast.error('Please select at least one target role');
+    }
     setIsConfirmModalOpen(true);
   };
 
@@ -43,7 +46,7 @@ export const AdminNotifications: React.FC = () => {
     };
 
     if (targetType === 'role') {
-      data.targetRole = targetRole;
+      data.targetRole = targetRoles;
     } else {
       data.userIds = specificUserIds
         .split(',')
@@ -132,21 +135,30 @@ export const AdminNotifications: React.FC = () => {
                 </div>
 
                 {targetType === 'role' ? (
-                  <div className="grid grid-cols-3 gap-3">
-                    {['USER', 'INSTRUCTOR', 'ADMIN'].map((r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => setTargetRole(r)}
-                        className={`py-3 rounded-xl border text-xs font-bold transition-all ${
-                          targetRole === r
-                            ? 'bg-indigo-500/20 border-indigo-500/50 text-white'
-                            : 'bg-white/5 border-white/10 text-slate-500'
-                        }`}
-                      >
-                        {r}
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-2 gap-3">
+                    {['USER', 'INSTRUCTOR'].map((r) => {
+                      const isSelected = targetRoles.includes(r);
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setTargetRoles(targetRoles.filter((role) => role !== r));
+                            } else {
+                              setTargetRoles([...targetRoles, r]);
+                            }
+                          }}
+                          className={`py-3 rounded-xl border text-xs font-bold transition-all ${
+                            isSelected
+                              ? 'bg-indigo-500/20 border-indigo-500/50 text-white'
+                              : 'bg-white/5 border-white/10 text-slate-500'
+                          }`}
+                        >
+                          {r}s
+                        </button>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div>
@@ -225,7 +237,7 @@ export const AdminNotifications: React.FC = () => {
           <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-2">
             <p className="text-xs font-bold text-slate-500 uppercase">Target</p>
             <p className="text-sm text-indigo-400 font-bold">
-              {targetType === 'role' ? `All ${targetRole}s` : 'Specific Users'}
+              {targetType === 'role' ? `All ${targetRoles.join(' & ')}s` : 'Specific Users'}
             </p>
             <p className="text-xs font-bold text-slate-500 uppercase pt-2">Title</p>
             <p className="text-sm text-white font-medium">{title}</p>

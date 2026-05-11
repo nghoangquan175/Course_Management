@@ -4,6 +4,7 @@ import { LogOut, ChevronDown, User, LayoutDashboard, BookOpen } from 'lucide-rea
 import { useAuth } from '../hooks/useAuth';
 import { Modal } from '../components/common/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FullscreenLoader } from '../components/common/FullscreenLoader';
 
 import { Logo } from '../components/common/Logo';
 
@@ -12,6 +13,7 @@ export const Layout: React.FC = () => {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -25,15 +27,25 @@ export const Layout: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleConfirmLogout = () => {
-    logout();
+  const handleConfirmLogout = async () => {
     setIsLogoutModalOpen(false);
     setIsDropdownOpen(false);
+    setIsLoggingOut(true);
+
+    // Simulate a smooth transition delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    logout();
     navigate('/');
+    setIsLoggingOut(false);
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-50">
+      <AnimatePresence>
+        {isLoggingOut && <FullscreenLoader label="Logging out..." />}
+      </AnimatePresence>
+
       <header className="h-20 border-b border-white/5 flex items-center sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md">
         <div className="container mx-auto px-6 max-w-[1440px] flex justify-between items-center">
           <Logo />

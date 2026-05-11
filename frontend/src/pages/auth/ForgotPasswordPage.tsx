@@ -25,15 +25,15 @@ export const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-      <motion.div 
+    <div className="h-screen bg-slate-950 flex items-center justify-center p-4 overflow-hidden">
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass p-8 md:p-12 rounded-3xl max-w-md w-full shadow-2xl"
+        className="glass p-6 md:p-10 rounded-[2.5rem] max-w-md w-full shadow-2xl relative overflow-hidden"
       >
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold mb-2">Forgot Password?</h2>
-          <p className="text-slate-400">Don't worry, we'll send you a link to reset your password.</p>
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold mb-1">Forgot Password?</h2>
+          <p className="text-slate-400 text-sm">We'll send you a link to reset your password.</p>
         </div>
 
         {isSent ? (
@@ -41,22 +41,27 @@ export const ForgotPasswordPage: React.FC = () => {
             <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto">
               <Send className="w-8 h-8" />
             </div>
-            <p className="text-slate-300">Please check your inbox (including spam folder) to continue.</p>
-            <Link to="/login" className="btn-primary w-full py-4 rounded-xl flex items-center justify-center gap-2">
-              <ArrowLeft className="w-5 h-5" /> Back to Login
+            <p className="text-slate-300 text-sm">Please check your inbox to continue.</p>
+            <Link
+              to="/login"
+              className="btn-primary w-full py-3.5 rounded-xl flex items-center justify-center gap-2 font-bold"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to Login
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 ml-1">Enter your email</label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 ml-1 uppercase tracking-wider">
+                Enter your email
+              </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type="email"
                   required
                   placeholder="example@mail.com"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-sm focus:border-indigo-500 outline-none transition-all"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -65,13 +70,16 @@ export const ForgotPasswordPage: React.FC = () => {
 
             <button
               disabled={loading}
-              className="w-full btn-primary py-4 rounded-xl flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50"
+              className="w-full btn-primary py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm font-black disabled:opacity-50 mt-2"
             >
-              {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Send Reset Link'}
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Reset Link'}
             </button>
 
-            <Link to="/login" className="flex items-center justify-center gap-2 text-sm text-slate-400 hover:text-white transition-colors">
-              <ArrowLeft className="w-4 h-4" /> Back to Login
+            <Link
+              to="/login"
+              className="flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-white transition-colors font-bold mt-4"
+            >
+              <ArrowLeft className="w-3 h-3" /> Back to Login
             </Link>
           </form>
         )}

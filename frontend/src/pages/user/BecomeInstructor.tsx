@@ -41,7 +41,6 @@ export const BecomeInstructor: React.FC = () => {
 
   useEffect(() => {
     if (!user) {
-      toast.error('Please login to apply as an instructor');
       navigate('/login', { state: { from: location.pathname } });
     }
   }, [user, navigate, location]);

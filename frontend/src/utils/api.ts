@@ -49,7 +49,19 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         localStorage.removeItem('accessToken');
-        // Don't force redirect to login here, let the application handle guest state
+        // Dispatch event for AuthContext to handle logout
+        window.dispatchEvent(new Event('auth:unauthorized'));
+
+        // Force redirect to login page
+        const isAdminPath = window.location.pathname.startsWith('/admin');
+        const loginPath = isAdminPath ? '/admin/login' : '/login';
+
+        // We use window.location.href for a hard redirect to clear all states
+        // but only if we are not already on the login page
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = `${loginPath}?expired=true`;
+        }
+
         return Promise.reject(refreshError);
       }
     }

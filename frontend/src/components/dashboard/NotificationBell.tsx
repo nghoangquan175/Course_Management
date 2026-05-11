@@ -91,7 +91,7 @@ export const NotificationBell: React.FC = () => {
         else if (role === 'INSTRUCTOR') navigate(`/instructor/dashboard${detailPath}`);
         else navigate(`/course/${notif.referenceId}`);
       } else if (notif.type.includes('APPLICATION')) {
-        if (role === 'ADMIN') navigate(`/admin`); // Admin applications tab
+        if (role === 'ADMIN') navigate(`/admin?tab=applications&appId=${notif.referenceId}`);
       }
     }
   };

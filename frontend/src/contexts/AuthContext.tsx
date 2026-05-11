@@ -14,7 +14,9 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any>(null);
-  const [accessToken, setAccessTokenState] = useState<string | null>(localStorage.getItem('accessToken'));
+  const [accessToken, setAccessTokenState] = useState<string | null>(
+    localStorage.getItem('accessToken')
+  );
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
@@ -25,7 +27,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const newToken = response.data.accessToken;
         setAccessTokenState(newToken);
         localStorage.setItem('accessToken', newToken);
-        
+
         // Fetch user profile if token is valid
         const userRes = await authService.getProfile();
         setUser(userRes.data);
@@ -34,12 +36,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // If refresh fails, clear everything
         localStorage.removeItem('accessToken');
         setAccessTokenState(null);
+        setUser(null);
       } finally {
         setIsInitializing(false);
       }
     };
 
     silentRefresh();
+  }, []);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+      setAccessTokenState(null);
+      localStorage.removeItem('accessToken');
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
 
   const login = (userData: any, token: string) => {
@@ -66,7 +80,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, isInitializing, login, logout, setAccessToken }}>
+    <AuthContext.Provider
+      value={{ user, accessToken, isInitializing, login, logout, setAccessToken }}
+    >
       {children}
     </AuthContext.Provider>
   );

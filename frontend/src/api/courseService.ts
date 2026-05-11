@@ -12,14 +12,24 @@ export const courseService = {
     const response = await api.post('/courses', data);
     return response.data;
   },
-  
+
   getAll: async (params?: { status?: string; categoryId?: string }) => {
     const response = await api.get('/courses', { params });
     return response.data;
   },
 
+  getManagementAll: async (params?: { status?: string; categoryId?: string }) => {
+    const response = await api.get('/courses/management', { params });
+    return response.data;
+  },
+
   getById: async (id: string, type?: string) => {
     const response = await api.get(`/courses/${id}`, { params: { type } });
+    return response.data;
+  },
+
+  getManagementById: async (id: string) => {
+    const response = await api.get(`/courses/management/${id}`);
     return response.data;
   },
 
@@ -37,7 +47,7 @@ export const courseService = {
     const response = await api.delete(`/courses/${id}`);
     return response.data;
   },
-  
+
   restore: async (id: string) => {
     const response = await api.post(`/courses/${id}/restore`);
     return response.data;
@@ -84,5 +94,5 @@ export const courseService = {
   getEnrolled: async () => {
     const response = await api.get('/courses/enrolled');
     return response.data;
-  }
+  },
 };

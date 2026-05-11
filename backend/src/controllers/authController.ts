@@ -201,20 +201,21 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
 export const refresh = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) return res.status(401).json({ message: 'No refresh token provided' });
+    if (!refreshToken)
+      return res.status(401).json({ message: 'Session expired, please login again' });
 
     const tokenDoc = await RefreshToken.findOne({ where: { token: refreshToken } });
-    if (!tokenDoc) return res.status(401).json({ message: 'Invalid refresh token' });
+    if (!tokenDoc) return res.status(401).json({ message: 'Invalid session, please login again' });
 
     if (tokenDoc.expiryDate < new Date()) {
       await RefreshToken.destroy({ where: { id: tokenDoc.id } });
-      return res.status(401).json({ message: 'Refresh token expired' });
+      return res.status(401).json({ message: 'Your session has expired, please login again' });
     }
 
     const payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as any;
     const user = await User.findByPk(payload.id);
 
-    if (!user) return res.status(401).json({ message: 'User not found' });
+    if (!user) return res.status(401).json({ message: 'Account not found' });
 
     const newAccessToken = generateToken(
       { id: user.id, role: user.role },

@@ -14,6 +14,8 @@ import certificateRoutes from './routes/certificateRoutes';
 import reviewRoutes from './routes/reviewRoutes';
 import instructorApplicationRoutes from './routes/instructorApplicationRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import adminRoutes from './routes/adminRoutes';
+import instructorRoutes from './routes/instructorRoutes';
 
 dotenv.config();
 
@@ -46,6 +48,8 @@ app.use('/api/certificates', certificateRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/instructor-applications', instructorApplicationRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/instructor', instructorRoutes);
 
 // Basic Route
 app.get('/', (req: Request, res: Response) => {

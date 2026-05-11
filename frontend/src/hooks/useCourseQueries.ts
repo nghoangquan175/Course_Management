@@ -1,16 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { courseService } from '../api/courseService';
 import { reviewService } from '../api/reviewService';
+import { examService } from '../api/examService';
+import { instructorService } from '../api/instructorService';
 
 /**
  * Hook for fetching all courses (Admin & Instructor view)
  */
-export const useCourses = (filters?: { status?: string; categoryId?: string }) => {
+export const useCourses = (
+  filters?: { status?: string; categoryId?: string },
+  isManagement: boolean = true
+) => {
   const statusToUse = filters?.status === 'all' ? undefined : filters?.status;
 
   return useQuery({
-    queryKey: ['courses', { ...filters, status: statusToUse }],
-    queryFn: () => courseService.getAll({ ...filters, status: statusToUse }),
+    queryKey: ['courses', { ...filters, status: statusToUse, isManagement }],
+    queryFn: () =>
+      isManagement
+        ? courseService.getManagementAll({ ...filters, status: statusToUse })
+        : courseService.getAll({ ...filters, status: statusToUse }),
   });
 };
 
@@ -28,10 +36,11 @@ export const useEnrolledCourses = () => {
 /**
  * Hook for fetching a single course by ID
  */
-export const useCourseDetail = (id: string | undefined) => {
+export const useCourseDetail = (id: string | undefined, isManagement: boolean = false) => {
   return useQuery({
-    queryKey: ['courses', 'detail', id],
-    queryFn: () => (id ? courseService.getById(id) : null),
+    queryKey: ['courses', 'detail', id, isManagement],
+    queryFn: () =>
+      id ? (isManagement ? courseService.getManagementById(id) : courseService.getById(id)) : null,
     enabled: !!id,
   });
 };
@@ -130,5 +139,27 @@ export const useSubmitReview = () => {
       // Invalidate enrolled courses if progress/rating is shown there
       queryClient.invalidateQueries({ queryKey: ['courses', 'enrolled'] });
     },
+  });
+};
+
+/**
+ * Hook for fetching student's exam results
+ */
+export const useExamResults = () => {
+  return useQuery({
+    queryKey: ['exams', 'results'],
+    queryFn: () => examService.getMyResults(),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+/**
+ * Hook for fetching instructor's unique students
+ */
+export const useInstructorStudents = () => {
+  return useQuery({
+    queryKey: ['instructor', 'students'],
+    queryFn: () => instructorService.getStudents(),
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };

@@ -8,12 +8,11 @@ import type { SidebarItem } from '../../components/dashboard/Sidebar';
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { CourseManagement } from '../../components/dashboard/CourseManagement';
-import { UserManagement } from '../../components/dashboard/UserManagement';
+import { InstructorStudentsTab } from '../../components/dashboard/InstructorStudentsTab';
 import { FullscreenLoader } from '../../components/common/FullscreenLoader';
 import { AnimatePresence } from 'framer-motion';
 
 import { useSearchParams } from 'react-router-dom';
-import { useCourses } from '../../hooks/useCourseQueries';
 
 export const InstructorDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -31,14 +30,6 @@ export const InstructorDashboard: React.FC = () => {
   });
 
   const [subView, setSubView] = useState('list');
-  const [currentStatus, setCurrentStatus] = useState<string | undefined>(undefined);
-
-  const {
-    data: courses = [],
-    isLoading: isLoadingCourses,
-    isFetching: isFetchingCourses,
-    refetch: refetchCourses,
-  } = useCourses({ status: currentStatus });
 
   const sidebarItems: SidebarItem[] = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" /> },
@@ -57,37 +48,11 @@ export const InstructorDashboard: React.FC = () => {
     navigate('/login');
   };
 
-  const onStatusChange = (status?: string) => {
-    const newStatus = status || 'all';
-    const effectiveCurrentStatus = currentStatus || 'all';
-
-    if (newStatus === effectiveCurrentStatus) {
-      refetchCourses();
-    } else {
-      setCurrentStatus(status === 'all' ? undefined : status);
-    }
-  };
-
-  // Mock student data for instructor
-  const mockStudents = Array.from({ length: 8 }).map((_, i) => ({
-    id: `student-${i}`,
-    name: `Active Student ${i}`,
-    email: `student${i}@example.com`,
-    role: 'USER',
-    isActivated: true,
-    createdAt: new Date().toISOString(),
-  }));
-
   const renderContent = () => {
     switch (activeTab) {
       case 'courses':
         return (
           <CourseManagement
-            courses={courses}
-            onRefresh={onStatusChange}
-            currentStatus={(currentStatus as any) || 'all'}
-            isLoading={isLoadingCourses}
-            isRefreshing={isFetchingCourses}
             onViewChange={setSubView}
             currentUserId={user?.id}
             initialView={searchParams.get('view') as any}
@@ -95,7 +60,7 @@ export const InstructorDashboard: React.FC = () => {
           />
         );
       case 'students':
-        return <UserManagement users={mockStudents} title="My Students" showAddButton={false} />;
+        return <InstructorStudentsTab />;
       case 'overview':
       default:
         return (

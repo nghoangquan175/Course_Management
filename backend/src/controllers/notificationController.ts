@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Notification, User } from '../models';
 import { UserRole } from '../models/User';
 import { sendNotification } from '../utils/socket';
+import { Op } from 'sequelize';
 
 export const getNotifications = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -70,34 +71,36 @@ export const createAdminNotification = async (req: Request, res: Response, next:
   try {
     const { title, message, targetRole, userIds, type, referenceId } = req.body;
 
-    let targetUserIds: string[] = [];
+    let targetUsers: { id: string; role: UserRole }[] = [];
 
     if (userIds && userIds.length > 0) {
-      targetUserIds = userIds;
-    } else if (targetRole) {
-      // If target is USER, send to everyone (since all are users)
-      // If target is INSTRUCTOR or ADMIN, filter specifically
-      const whereClause = targetRole === 'USER' ? {} : { role: targetRole };
       const users = await User.findAll({
-        where: whereClause,
-        attributes: ['id'],
+        where: { id: { [Op.in]: userIds } },
+        attributes: ['id', 'role'],
       });
-      targetUserIds = users.map((u) => u.id);
+      targetUsers = users.map((u) => ({ id: u.id, role: u.role as UserRole }));
+    } else if (targetRole) {
+      const roles = Array.isArray(targetRole) ? targetRole : [targetRole];
+      const users = await User.findAll({
+        where: { role: { [Op.in]: roles } },
+        attributes: ['id', 'role'],
+      });
+      targetUsers = users.map((u) => ({ id: u.id, role: u.role as UserRole }));
     }
 
     const notifications = await Promise.all(
-      targetUserIds.map(async (uid) => {
+      targetUsers.map(async (u) => {
         const notif = await Notification.create({
-          userId: uid,
-          targetRole: targetRole || UserRole.USER,
+          userId: u.id,
+          targetRole: u.role,
           title,
           message,
-          type,
+          type: type || 'SYSTEM',
           referenceId,
           isRead: false,
         });
 
-        sendNotification(uid, notif);
+        sendNotification(u.id, notif);
         return notif;
       })
     );

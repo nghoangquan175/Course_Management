@@ -18,7 +18,7 @@ export const ResetPasswordPage: React.FC = () => {
     if (password !== confirmPassword) {
       return toast.error('Passwords do not match');
     }
-    
+
     setLoading(true);
     try {
       if (!token) return;
@@ -34,48 +34,52 @@ export const ResetPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-      <motion.div 
+    <div className="h-screen bg-slate-950 flex items-center justify-center p-4 overflow-hidden">
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass p-8 md:p-12 rounded-3xl max-w-md w-full shadow-2xl"
+        className="glass p-6 md:p-10 rounded-[2.5rem] max-w-md w-full shadow-2xl relative overflow-hidden"
       >
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold mb-2">Reset Password</h2>
-          <p className="text-slate-400">Please enter a new password for your account.</p>
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold mb-1">Reset Password</h2>
+          <p className="text-slate-400 text-sm">Please enter a new password for your account.</p>
         </div>
 
         {isSuccess ? (
           <div className="text-center space-y-6">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
-            <p className="text-slate-300">Password has been updated successfully. Redirecting to login page...</p>
+            <p className="text-slate-300 text-sm">Password updated successfully. Redirecting...</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 ml-1">New Password</label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 ml-1 uppercase tracking-wider">
+                New Password
+              </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type="password"
                   required
                   placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-sm focus:border-indigo-500 outline-none transition-all"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 ml-1">Confirm Password</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 ml-1 uppercase tracking-wider">
+                Confirm Password
+              </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type="password"
                   required
                   placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-sm focus:border-indigo-500 outline-none transition-all"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
@@ -84,9 +88,15 @@ export const ResetPasswordPage: React.FC = () => {
 
             <button
               disabled={loading}
-              className="w-full btn-primary py-4 rounded-xl flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50"
+              className="w-full btn-primary py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm font-black disabled:opacity-50 mt-2"
             >
-              {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Update Password <ArrowRight className="w-5 h-5" /></>}
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  Update Password <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
         )}
