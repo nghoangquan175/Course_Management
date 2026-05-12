@@ -28,12 +28,14 @@ interface CourseReviewModalProps {
     totalStudents?: number;
     averageRating?: number;
   };
+  onSuccess?: (data: any) => void;
 }
 
 export const CourseReviewModal: React.FC<CourseReviewModalProps> = ({
   isOpen,
   onClose,
   course,
+  onSuccess,
 }) => {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
   const [hoverRating, setHoverRating] = useState(0);
@@ -70,8 +72,9 @@ export const CourseReviewModal: React.FC<CourseReviewModalProps> = ({
     submitReview(
       { courseId: course.id, ...data },
       {
-        onSuccess: () => {
+        onSuccess: (data: any) => {
           setStatus('success');
+          if (onSuccess) onSuccess(data);
           setTimeout(() => {
             onClose();
           }, 2500);

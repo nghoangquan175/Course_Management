@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
-    "build": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs'); fs.cpSync('src/templates', 'dist/templates', {recursive:true})\"",
     "migrate": "npx sequelize-cli db:migrate",
     "migrate:undo": "npx sequelize-cli db:migrate:undo",
     "migrate:generate": "npx sequelize-cli migration:generate",

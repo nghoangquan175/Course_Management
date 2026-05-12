@@ -169,9 +169,8 @@ export const LearningPlayer: React.FC = () => {
 
   const currentLesson = course?.lessons?.[currentLessonIdx];
 
-  // HLS logic
   useEffect(() => {
-    if (activeLesson?.videoUrl && videoRef.current) {
+    if (activeLesson?.videoUrl && videoRef.current && !isLessonLoading) {
       const video = videoRef.current;
       const hlsUrl = getStreamingUrl(activeLesson.videoUrl);
 
@@ -179,12 +178,38 @@ export const LearningPlayer: React.FC = () => {
         if (hlsRef.current) {
           hlsRef.current.destroy();
         }
-        const hls = new Hls();
-        hls.loadSource(hlsUrl);
+
+        const hls = new Hls({
+          maxBufferLength: 30,
+          maxMaxBufferLength: 30,
+          enableWorker: true,
+        });
+
         hls.attachMedia(video);
+        hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+          hls.loadSource(hlsUrl);
+        });
+
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           video.play().catch((e) => console.log('Autoplay prevented:', e));
         });
+
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                hls.recoverMediaError();
+                break;
+              default:
+                hls.destroy();
+                break;
+            }
+          }
+        });
+
         hlsRef.current = hls;
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = hlsUrl;
@@ -199,7 +224,7 @@ export const LearningPlayer: React.FC = () => {
       }
       setIsResumed(false);
     };
-  }, [currentLesson]);
+  }, [activeLesson?.id, activeLesson?.videoUrl, isLessonLoading]);
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
@@ -339,6 +364,16 @@ export const LearningPlayer: React.FC = () => {
     }
   };
 
+  const handleReviewSuccess = (data: any) => {
+    if (course) {
+      setCourse((prev: any) => ({
+        ...prev,
+        rating: data.newAverageRating,
+        reviews: [...(prev.reviews || []), data.review],
+      }));
+    }
+  };
+
   if (isLoading) return <FullscreenLoader />;
   if (!course) return null;
 
@@ -411,7 +446,6 @@ export const LearningPlayer: React.FC = () => {
                 <video
                   ref={videoRef}
                   key={activeLesson.id}
-                  src={activeLesson.videoUrl ? getStreamingUrl(activeLesson.videoUrl) : undefined}
                   className="w-full h-full object-contain"
                   controls
                   autoPlay
@@ -649,6 +683,7 @@ export const LearningPlayer: React.FC = () => {
             totalStudents: course.totalStudents,
             averageRating: course.rating,
           }}
+          onSuccess={handleReviewSuccess}
         />
       )}
 

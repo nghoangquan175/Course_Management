@@ -22,10 +22,12 @@ Review.init(
     userId: {
       type: DataTypes.UUID,
       allowNull: false,
+      unique: 'user_course_review',
     },
     courseId: {
       type: DataTypes.UUID,
       allowNull: false,
+      unique: 'user_course_review',
     },
     rating: {
       type: DataTypes.INTEGER,

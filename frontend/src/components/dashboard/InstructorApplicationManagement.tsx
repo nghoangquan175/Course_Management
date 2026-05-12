@@ -15,11 +15,28 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInstructorApplications } from '../../hooks/useInstructorApplications';
 import { Modal } from '../common/Modal';
+import { RefreshButton } from '../common/RefreshButton';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-hot-toast';
 
 export const InstructorApplicationManagement: React.FC = () => {
-  const { applications, isLoading, processApplication, isProcessing } = useInstructorApplications();
+  const {
+    applications,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+    dataUpdatedAt,
+    processApplication,
+    isProcessing,
+  } = useInstructorApplications();
+
+  React.useEffect(() => {
+    if (isError && !isLoading) {
+      toast.error('Failed to refresh applications list. Showing cached data.');
+    }
+  }, [isError, isLoading]);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -326,14 +343,20 @@ export const InstructorApplicationManagement: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col min-h-0 space-y-6">
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">
-            Instructor Applications
-            {statusFilter !== 'ALL' && (
-              <span className="ml-2 text-indigo-400 opacity-60">({statusFilter})</span>
-            )}
-          </h2>
-          <p className="text-slate-500 text-sm">Review and process new instructor registrations</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h2 className="text-2xl font-bold">
+              Instructor Applications
+              {statusFilter !== 'ALL' && (
+                <span className="ml-2 text-indigo-400 opacity-60">({statusFilter})</span>
+              )}
+            </h2>
+          </div>
+          <RefreshButton
+            onRefresh={refetch}
+            isRefreshing={isFetching}
+            dataUpdatedAt={dataUpdatedAt}
+          />
         </div>
 
         <div className="relative w-full md:w-96">
@@ -412,11 +435,32 @@ export const InstructorApplicationManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {isLoading ? (
+              {isLoading || isFetching ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={5} className="px-6 py-4">
-                      <div className="h-12 bg-white/5 rounded-xl w-full"></div>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white/5 rounded-full" />
+                        <div className="space-y-2">
+                          <div className="h-4 bg-white/5 rounded w-32" />
+                          <div className="h-3 bg-white/5 rounded w-20" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-2">
+                        <div className="h-3 bg-white/5 rounded w-40" />
+                        <div className="h-3 bg-white/5 rounded w-32" />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-6 bg-white/5 rounded-full w-20" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-white/5 rounded w-24" />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="h-8 bg-white/5 rounded-lg w-10 ml-auto" />
                     </td>
                   </tr>
                 ))
@@ -424,7 +468,7 @@ export const InstructorApplicationManagement: React.FC = () => {
                 filteredApps.map((app: any) => (
                   <tr
                     key={app.id}
-                    className="hover:bg-white/2 transition-colors cursor-pointer group"
+                    className={`hover:bg-white/2 transition-colors cursor-pointer group ${isFetching ? 'opacity-50 pointer-events-none' : ''}`}
                     onClick={() => handleOpenDetail(app)}
                   >
                     <td className="px-6 py-4">

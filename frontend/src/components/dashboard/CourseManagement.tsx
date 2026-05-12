@@ -20,6 +20,8 @@ import { CreateCourseForm } from '../../pages/instructor/CreateCourseForm';
 import { CourseDetailView } from './CourseDetailView';
 import { CurriculumEditor } from './CurriculumEditor';
 import { Modal } from '../common/Modal';
+import { RefreshButton } from '../common/RefreshButton';
+import { toast } from 'react-hot-toast';
 import { useCourseActions, useCourses } from '../../hooks/useCourseQueries';
 import { useSearchParams } from 'react-router-dom';
 
@@ -77,8 +79,16 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     data: courses = [],
     isLoading,
     isFetching: isRefreshing,
+    isError,
     refetch: refetchCourses,
+    dataUpdatedAt,
   } = useCourses({ status: currentStatus });
+
+  React.useEffect(() => {
+    if (isError && !isLoading) {
+      toast.error('Failed to refresh courses list.');
+    }
+  }, [isError, isLoading]);
 
   const [, setSearchParams] = useSearchParams();
 
@@ -286,7 +296,16 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex items-center justify-between mb-6 shrink-0">
-        <h2 className="text-xl font-bold">{isAdmin ? 'All Courses' : 'My Courses'}</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-bold">{isAdmin ? 'All Courses' : 'My Courses'}</h2>
+          {isAdmin && (
+            <RefreshButton
+              onRefresh={refetchCourses}
+              isRefreshing={isRefreshing}
+              dataUpdatedAt={dataUpdatedAt}
+            />
+          )}
+        </div>
         {showCreateButton && (
           <button
             onClick={() => setView('create')}
@@ -365,241 +384,260 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 relative">
-              {(isLoading || isRefreshing) && (
-                <div className="absolute inset-0 z-20 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                    {isRefreshing && !isLoading && (
-                      <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest animate-pulse">
-                        Refreshing Data...
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-              {courses.map((course: any) => (
-                <tr key={course.id} className="hover:bg-white/5 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
-                        {course.thumbnailUrl ? (
-                          <img
-                            src={course.thumbnailUrl}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <ImageIcon className="w-4 h-4 text-slate-600" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold truncate group-hover:text-indigo-400 transition-colors">
-                          {course.name}
-                        </p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">
-                          Created on {course.createdAt}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  {isAdmin && (
-                    <td className="px-6 py-4 text-xs text-slate-300">
-                      {typeof course.instructor === 'object'
-                        ? (course.instructor as any)?.name
-                        : course.instructor || 'Unknown'}
-                    </td>
-                  )}
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${course.deletedAt ? statusColors['DELETED'] : statusColors[course.status as CourseStatus]}`}
+              {isLoading || isRefreshing
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-10 rounded-lg bg-white/5" />
+                          <div className="space-y-2">
+                            <div className="h-4 bg-white/5 rounded w-32" />
+                            <div className="h-3 bg-white/5 rounded w-20" />
+                          </div>
+                        </div>
+                      </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4">
+                          <div className="h-4 bg-white/5 rounded w-24" />
+                        </td>
+                      )}
+                      <td className="px-6 py-4">
+                        <div className="h-6 bg-white/5 rounded-lg w-20" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-white/5 rounded w-10" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-8 bg-white/5 rounded-lg w-24 ml-auto" />
+                      </td>
+                    </tr>
+                  ))
+                : courses.map((course: any) => (
+                    <tr
+                      key={course.id}
+                      className={`hover:bg-white/5 transition-colors group ${isRefreshing ? 'opacity-50 pointer-events-none' : ''}`}
                     >
-                      {course.deletedAt ? 'DELETED' : course.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-300">
-                    {course.totalStudents?.toLocaleString() || 0}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      {course.deletedAt ? (
-                        <button
-                          onClick={() => {
-                            setCourseToRestore(course.id);
-                            setIsRestoreModalOpen(true);
-                          }}
-                          className="p-2 hover:bg-green-500/10 rounded-lg text-green-500/50 hover:text-green-500 flex items-center gap-2 text-[10px] font-bold uppercase"
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                            {course.thumbnailUrl ? (
+                              <img
+                                src={course.thumbnailUrl}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <ImageIcon className="w-4 h-4 text-slate-600" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold truncate group-hover:text-indigo-400 transition-colors">
+                              {course.name}
+                            </p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">
+                              Created on {course.createdAt}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4 text-xs text-slate-300">
+                          {typeof course.instructor === 'object'
+                            ? (course.instructor as any)?.name
+                            : course.instructor || 'Unknown'}
+                        </td>
+                      )}
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${course.deletedAt ? statusColors['DELETED'] : statusColors[course.status as CourseStatus]}`}
                         >
-                          <RotateCcw className="w-4 h-4" /> Restore
-                        </button>
-                      ) : (
-                        <>
-                          {!isAdmin ? (
-                            // INSTRUCTOR ACTIONS
-                            <>
-                              {course.status === 'DRAFT' && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setView('curriculum');
-                                      setSelectedCourse(course);
-                                    }}
-                                    className="p-2 hover:bg-indigo-500/10 rounded-lg text-indigo-500/50 hover:text-indigo-500 transition-all"
-                                    title="Edit Curriculum"
-                                  >
-                                    <BookOpen className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setView('edit');
-                                      setSelectedCourse(course);
-                                    }}
-                                    className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
-                                    title="Edit Info"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setActiveWorkflowAction('submit');
-                                      setCourseToProcess(course.id);
-                                      setIsWorkflowModalOpen(true);
-                                    }}
-                                    className="p-2 hover:bg-purple-500/10 rounded-lg text-purple-500/50 hover:text-purple-500 transition-all"
-                                    title="Submit"
-                                  >
-                                    <Send className="w-4 h-4" />
-                                  </button>
-                                  {/* Trash only for owner in DRAFT */}
-                                  <button
-                                    onClick={() => {
-                                      setCourseToDelete(course.id);
-                                      setIsDeleteModalOpen(true);
-                                    }}
-                                    className="p-2 hover:bg-white/5 rounded-lg text-red-500/50 hover:text-red-500"
-                                    title="Delete"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </>
-                              )}
-                              {course.status === 'PENDING' && (
-                                <button
-                                  onClick={() => {
-                                    setActiveWorkflowAction('withdraw');
-                                    setCourseToProcess(course.id);
-                                    setIsWorkflowModalOpen(true);
-                                  }}
-                                  className="p-2 hover:bg-amber-500/10 rounded-lg text-amber-500/50 hover:text-amber-500"
-                                  title="Recall Submission"
-                                >
-                                  <Undo className="w-4 h-4" />
-                                </button>
-                              )}
-                              {(course.status === 'PUBLISHED' ||
-                                course.status === 'UNPUBLISHED') && (
-                                <button
-                                  onClick={() => {
-                                    setActiveWorkflowAction('requestEdit');
-                                    setCourseToProcess(course.id);
-                                    setIsWorkflowModalOpen(true);
-                                  }}
-                                  className="p-2 hover:bg-blue-500/10 rounded-lg text-blue-500/50 hover:text-blue-500"
-                                  title="Request Edit"
-                                >
-                                  <AlertCircle className="w-4 h-4" />
-                                </button>
-                              )}
-                            </>
+                          {course.deletedAt ? 'DELETED' : course.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-300">
+                        {course.totalStudents?.toLocaleString() || 0}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          {course.deletedAt ? (
+                            <button
+                              onClick={() => {
+                                setCourseToRestore(course.id);
+                                setIsRestoreModalOpen(true);
+                              }}
+                              className="p-2 hover:bg-green-500/10 rounded-lg text-green-500/50 hover:text-green-500 flex items-center gap-2 text-[10px] font-bold uppercase"
+                            >
+                              <RotateCcw className="w-4 h-4" /> Restore
+                            </button>
                           ) : (
-                            // ADMIN ACTIONS
                             <>
-                              {course.status === 'PENDING' && (
+                              {!isAdmin ? (
+                                // INSTRUCTOR ACTIONS
                                 <>
-                                  <button
-                                    onClick={() => {
-                                      setActiveWorkflowAction('approve');
-                                      setCourseToProcess(course.id);
-                                      setIsWorkflowModalOpen(true);
-                                    }}
-                                    className="p-2 hover:bg-green-500/10 rounded-lg text-green-500/50"
-                                    title="Approve"
-                                  >
-                                    <CheckCircle className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setActiveWorkflowAction('reject');
-                                      setCourseToProcess(course.id);
-                                      setIsWorkflowModalOpen(true);
-                                    }}
-                                    className="p-2 hover:bg-red-500/10 rounded-lg text-red-500/50"
-                                    title="Reject"
-                                  >
-                                    <XCircle className="w-4 h-4" />
-                                  </button>
+                                  {course.status === 'DRAFT' && (
+                                    <>
+                                      <button
+                                        onClick={() => {
+                                          setView('curriculum');
+                                          setSelectedCourse(course);
+                                        }}
+                                        className="p-2 hover:bg-indigo-500/10 rounded-lg text-indigo-500/50 hover:text-indigo-500 transition-all"
+                                        title="Edit Curriculum"
+                                      >
+                                        <BookOpen className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setView('edit');
+                                          setSelectedCourse(course);
+                                        }}
+                                        className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
+                                        title="Edit Info"
+                                      >
+                                        <Edit className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setActiveWorkflowAction('submit');
+                                          setCourseToProcess(course.id);
+                                          setIsWorkflowModalOpen(true);
+                                        }}
+                                        className="p-2 hover:bg-purple-500/10 rounded-lg text-purple-500/50 hover:text-purple-500 transition-all"
+                                        title="Submit"
+                                      >
+                                        <Send className="w-4 h-4" />
+                                      </button>
+                                      {/* Trash only for owner in DRAFT */}
+                                      <button
+                                        onClick={() => {
+                                          setCourseToDelete(course.id);
+                                          setIsDeleteModalOpen(true);
+                                        }}
+                                        className="p-2 hover:bg-white/5 rounded-lg text-red-500/50 hover:text-red-500"
+                                        title="Delete"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </>
+                                  )}
+                                  {course.status === 'PENDING' && (
+                                    <button
+                                      onClick={() => {
+                                        setActiveWorkflowAction('withdraw');
+                                        setCourseToProcess(course.id);
+                                        setIsWorkflowModalOpen(true);
+                                      }}
+                                      className="p-2 hover:bg-amber-500/10 rounded-lg text-amber-500/50 hover:text-amber-500"
+                                      title="Recall Submission"
+                                    >
+                                      <Undo className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  {(course.status === 'PUBLISHED' ||
+                                    course.status === 'UNPUBLISHED') && (
+                                    <button
+                                      onClick={() => {
+                                        setActiveWorkflowAction('requestEdit');
+                                        setCourseToProcess(course.id);
+                                        setIsWorkflowModalOpen(true);
+                                      }}
+                                      className="p-2 hover:bg-blue-500/10 rounded-lg text-blue-500/50 hover:text-blue-500"
+                                      title="Request Edit"
+                                    >
+                                      <AlertCircle className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                // ADMIN ACTIONS
+                                <>
+                                  {course.status === 'PENDING' && (
+                                    <>
+                                      <button
+                                        onClick={() => {
+                                          setActiveWorkflowAction('approve');
+                                          setCourseToProcess(course.id);
+                                          setIsWorkflowModalOpen(true);
+                                        }}
+                                        className="p-2 hover:bg-green-500/10 rounded-lg text-green-500/50"
+                                        title="Approve"
+                                      >
+                                        <CheckCircle className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setActiveWorkflowAction('reject');
+                                          setCourseToProcess(course.id);
+                                          setIsWorkflowModalOpen(true);
+                                        }}
+                                        className="p-2 hover:bg-red-500/10 rounded-lg text-red-500/50"
+                                        title="Reject"
+                                      >
+                                        <XCircle className="w-4 h-4" />
+                                      </button>
+                                    </>
+                                  )}
+                                  {(course.status === 'CONTENT_APPROVED' ||
+                                    course.status === 'UNPUBLISHED') && (
+                                    <button
+                                      onClick={() => {
+                                        setActiveWorkflowAction('publish');
+                                        setCourseToProcess(course.id);
+                                        setIsWorkflowModalOpen(true);
+                                      }}
+                                      className="p-2 hover:bg-green-500/10 rounded-lg text-green-500/50"
+                                      title="Publish"
+                                    >
+                                      <Globe className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  {course.status === 'PUBLISHED' && (
+                                    <button
+                                      onClick={() => {
+                                        setActiveWorkflowAction('unpublish');
+                                        setCourseToProcess(course.id);
+                                        setIsWorkflowModalOpen(true);
+                                      }}
+                                      className="p-2 hover:bg-amber-500/10 rounded-lg text-amber-500/50"
+                                      title="Take Down"
+                                    >
+                                      <XCircle className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  {/* Admin also only sees trash for THEIR OWN drafts */}
+                                  {course.status === 'DRAFT' &&
+                                    ((course as any).instructorId === currentUserId ||
+                                      (typeof course.instructor === 'object' &&
+                                        (course.instructor as any)?.id === currentUserId)) && (
+                                      <button
+                                        onClick={() => {
+                                          setCourseToDelete(course.id);
+                                          setIsDeleteModalOpen(true);
+                                        }}
+                                        className="p-2 hover:bg-white/5 rounded-lg text-red-500/50 hover:text-red-500"
+                                        title="Delete"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    )}
                                 </>
                               )}
-                              {(course.status === 'CONTENT_APPROVED' ||
-                                course.status === 'UNPUBLISHED') && (
-                                <button
-                                  onClick={() => {
-                                    setActiveWorkflowAction('publish');
-                                    setCourseToProcess(course.id);
-                                    setIsWorkflowModalOpen(true);
-                                  }}
-                                  className="p-2 hover:bg-green-500/10 rounded-lg text-green-500/50"
-                                  title="Publish"
-                                >
-                                  <Globe className="w-4 h-4" />
-                                </button>
-                              )}
-                              {course.status === 'PUBLISHED' && (
-                                <button
-                                  onClick={() => {
-                                    setActiveWorkflowAction('unpublish');
-                                    setCourseToProcess(course.id);
-                                    setIsWorkflowModalOpen(true);
-                                  }}
-                                  className="p-2 hover:bg-amber-500/10 rounded-lg text-amber-500/50"
-                                  title="Take Down"
-                                >
-                                  <XCircle className="w-4 h-4" />
-                                </button>
-                              )}
-                              {/* Admin also only sees trash for THEIR OWN drafts */}
-                              {course.status === 'DRAFT' &&
-                                ((course as any).instructorId === currentUserId ||
-                                  (typeof course.instructor === 'object' &&
-                                    (course.instructor as any)?.id === currentUserId)) && (
-                                  <button
-                                    onClick={() => {
-                                      setCourseToDelete(course.id);
-                                      setIsDeleteModalOpen(true);
-                                    }}
-                                    className="p-2 hover:bg-white/5 rounded-lg text-red-500/50 hover:text-red-500"
-                                    title="Delete"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                )}
+                              <button
+                                onClick={() => {
+                                  setSelectedCourse(course);
+                                  setView('detail');
+                                }}
+                                className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white"
+                                title="Preview"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
                             </>
                           )}
-                          <button
-                            onClick={() => {
-                              setSelectedCourse(course);
-                              setView('detail');
-                            }}
-                            className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white"
-                            title="Preview"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
             </tbody>
           </table>
         </div>

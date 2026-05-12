@@ -23,6 +23,7 @@ COPY migrations ./migrations
 COPY seeders ./seeders
 COPY .sequelizerc ./.sequelizerc
 COPY src/config ./dist/config
+COPY src/templates ./dist/templates
 
 EXPOSE 5001
 

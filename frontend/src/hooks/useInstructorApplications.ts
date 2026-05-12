@@ -10,12 +10,23 @@ export const useInstructorApplications = () => {
     queryFn: async () => {
       const response = await api.get('/instructor-applications');
       return response.data;
-    }
+    },
   });
 
   const processApplicationMutation = useMutation({
-    mutationFn: async ({ id, status, rejectionReason }: { id: string, status: 'APPROVED' | 'REJECTED', rejectionReason?: string }) => {
-      const response = await api.patch(`/instructor-applications/${id}/process`, { status, rejectionReason });
+    mutationFn: async ({
+      id,
+      status,
+      rejectionReason,
+    }: {
+      id: string;
+      status: 'APPROVED' | 'REJECTED';
+      rejectionReason?: string;
+    }) => {
+      const response = await api.patch(`/instructor-applications/${id}/process`, {
+        status,
+        rejectionReason,
+      });
       return response.data;
     },
     onSuccess: (data) => {
@@ -24,13 +35,17 @@ export const useInstructorApplications = () => {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to process application');
-    }
+    },
   });
 
   return {
     applications: applicationsQuery.data || [],
     isLoading: applicationsQuery.isLoading,
+    isFetching: applicationsQuery.isFetching,
+    isError: applicationsQuery.isError,
+    refetch: applicationsQuery.refetch,
+    dataUpdatedAt: applicationsQuery.dataUpdatedAt,
     processApplication: processApplicationMutation.mutate,
-    isProcessing: processApplicationMutation.isPending
+    isProcessing: processApplicationMutation.isPending,
   };
 };
