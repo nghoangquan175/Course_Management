@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Op } from 'sequelize';
+import sequelize from '../config/db';
 import Course, { CourseStatus } from '../models/Course';
 import Category from '../models/Category';
 import Lesson from '../models/Lesson';
@@ -14,6 +15,7 @@ import ExamResult from '../models/ExamResult';
 import Certificate from '../models/Certificate';
 import Notification, { NotificationType } from '../models/Notification';
 import { sendNotification } from '../utils/socket';
+import CourseEditRequest from '../models/CourseEditRequest';
 
 export const createCourse = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -33,7 +35,8 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       thumbnailUrl,
       categoryId,
       instructorId,
-      status: 'DRAFT',
+      status: CourseStatus.DRAFT,
+      version: 1,
     });
 
     res.status(201).json(course);
@@ -75,13 +78,7 @@ export const getAllCourses = async (req: Request, res: Response, next: NextFunct
         ];
       }
     } else {
-      // For GUESTS or STUDENTS, they only see PUBLISHED courses by default
-      // unless a specific public status is requested (but even then, we restrict to safe ones)
-      if (status && ['PUBLISHED', 'UNPUBLISHED'].includes(status as string)) {
-        where.status = status;
-      } else {
-        where.status = 'PUBLISHED';
-      }
+      where.status = 'PUBLISHED';
     }
 
     const courses = await Course.findAll({
@@ -90,6 +87,13 @@ export const getAllCourses = async (req: Request, res: Response, next: NextFunct
       include: [
         { model: Category, as: 'category', attributes: ['id', 'name'] },
         { model: User, as: 'instructor', attributes: ['id', 'name'] },
+        {
+          model: CourseEditRequest,
+          as: 'editRequests',
+          where: { status: 'PENDING' },
+          required: false,
+          attributes: ['id', 'reason', 'status', 'createdAt'],
+        },
       ],
       order: [['createdAt', 'DESC']],
     });
@@ -131,18 +135,29 @@ export const getCourseById = async (req: Request, res: Response, next: NextFunct
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // Protection: Instructor can only see their own courses
-    if (req.user?.role === 'INSTRUCTOR' && course.instructorId !== req.user.id) {
-      return res.status(403).json({ message: 'You are not authorized to view this course' });
-    }
-
     // Attach user enrollment if logged in
     const userId = req.user?.id;
+    const userRole = req.user?.role;
     let userEnrollment = null;
     if (userId) {
       userEnrollment = await Enrollment.findOne({
         where: { userId, courseId: id },
       });
+    }
+
+    // --- ACCESS CONTROL LOGIC ---
+    // If course is NOT PUBLISHED, only certain people can see it:
+    if (course.status !== CourseStatus.PUBLISHED) {
+      const isInstructor = userRole === 'INSTRUCTOR' && course.instructorId === userId;
+      const isAdmin = userRole === 'ADMIN';
+      const isEnrolled = !!userEnrollment;
+
+      if (!isInstructor && !isAdmin && !isEnrolled) {
+        return res.status(403).json({
+          message: 'This course is currently unavailable for new students.',
+          status: course.status,
+        });
+      }
     }
 
     const courseData = course.toJSON();
@@ -193,12 +208,19 @@ export const getCourseById = async (req: Request, res: Response, next: NextFunct
 export const updateCourse = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { name, description, thumbnailUrl, categoryId, status } = req.body;
+    const { name, description, thumbnailUrl, categoryId, status, version } = req.body;
 
     const course = await Course.findByPk(id as string);
 
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Protection: Only Version 1 in DRAFT status can be updated
+    if (course.version !== 1 || course.status !== CourseStatus.DRAFT) {
+      return res.status(403).json({
+        message: 'Only Version 1 in DRAFT status can have its basic information edited.',
+      });
     }
 
     // Protection: Instructor can only update their own courses
@@ -214,6 +236,7 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
     if (thumbnailUrl) course.thumbnailUrl = thumbnailUrl;
     if (categoryId) course.categoryId = categoryId;
     if (status) course.status = status;
+    if (version) course.version = version;
 
     await course.save();
 
@@ -389,20 +412,65 @@ export const rejectCourse = async (req: Request, res: Response, next: NextFuncti
 };
 
 export const publishCourse = async (req: Request, res: Response, next: NextFunction) => {
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const course = await Course.findByPk(id as string);
-    if (!course) return res.status(404).json({ message: 'Course not found' });
+    const { forcePublish } = req.body || {};
+
+    const course = await Course.findByPk(id as string, { transaction });
+    if (!course) {
+      await transaction.rollback();
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
     if (
       course.status !== CourseStatus.CONTENT_APPROVED &&
       course.status !== CourseStatus.UNPUBLISHED
     ) {
-      return res.status(400).json({ message: 'Course must be approved or unpublished' });
+      await transaction.rollback();
+      return res
+        .status(400)
+        .json({ message: 'Course must be approved or unpublished before publishing' });
     }
+
+    // Versioning Conflict Check: "Một thời điểm - Một bộ mặt"
+    const lineageId = course.parentCourseId || course.id;
+    const existingPublished = await Course.findOne({
+      where: {
+        [Op.or]: [{ id: lineageId }, { parentCourseId: lineageId }],
+        status: CourseStatus.PUBLISHED,
+        id: { [Op.ne]: course.id },
+      },
+      transaction,
+    });
+
+    if (existingPublished && !forcePublish) {
+      await transaction.rollback();
+      return res.status(409).json({
+        message: 'CONFLICT_PUBLISHED_VERSION',
+        publishedVersion: {
+          id: existingPublished.id,
+          name: existingPublished.name,
+          version: existingPublished.version,
+        },
+      });
+    }
+
+    // If forcePublish or no conflict, proceed
+    if (existingPublished && forcePublish) {
+      existingPublished.status = CourseStatus.UNPUBLISHED;
+      await existingPublished.save({ transaction });
+    }
+
     course.status = CourseStatus.PUBLISHED;
-    await course.save();
+    await course.save({ transaction });
+
+    await transaction.commit();
     res.status(200).json(course);
   } catch (error) {
+    if (transaction && !(transaction as any).finished) {
+      await transaction.rollback();
+    }
     next(error);
   }
 };
@@ -423,20 +491,6 @@ export const unpublishCourse = async (req: Request, res: Response, next: NextFun
   }
 };
 
-export const requestEdit = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
-    const course = await Course.findByPk(id as string);
-    if (!course || course.instructorId !== req.user?.id) {
-      return res.status(404).json({ message: 'Course not found or unauthorized' });
-    }
-    course.status = CourseStatus.DRAFT;
-    await course.save();
-    res.status(200).json(course);
-  } catch (error) {
-    next(error);
-  }
-};
 // --- Enrollment ---
 
 export const enrollCourse = async (req: Request, res: Response, next: NextFunction) => {

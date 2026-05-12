@@ -20,7 +20,8 @@ import Hls from 'hls.js';
 import { courseService } from '../../api/courseService';
 import { progressService } from '../../api/progressService';
 import { certificateService } from '../../api/certificateService';
-import { getStreamingUrl } from '../../utils/videoUtils';
+import { getStreamingUrl, extractPublicId } from '../../utils/videoUtils';
+import { cloudinaryService } from '../../api/cloudinaryService';
 import { FullscreenLoader } from '../../components/common/FullscreenLoader';
 import { toast } from 'react-hot-toast';
 import { CourseReviewModal } from '../../components/course/CourseReviewModal';
@@ -53,8 +54,11 @@ export const LearningPlayer: React.FC = () => {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [currentProgress, setCurrentProgress] = useState(0);
   const [activeLesson, setActiveLesson] = useState<any>(null);
+  const [signedVideoUrl, setSignedVideoUrl] = useState<string | null>(null);
   const [isLessonLoading, setIsLessonLoading] = useState(false);
+  const [isSigningUrl, setIsSigningUrl] = useState(false);
   const [showCertConfirmModal, setShowCertConfirmModal] = useState(false);
+  const [isPreparingMetadata, setIsPreparingMetadata] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -139,9 +143,9 @@ export const LearningPlayer: React.FC = () => {
       }
     };
     fetchCourseAndInitialLesson();
-  }, [id, navigate]); // Remove location.state dependency to avoid re-fetch on every state change
+  }, [id, navigate]);
 
-  // Fetch Lesson Detail when index changes (Skip first run because fetchCourseAndInitialLesson handles it)
+  // Fetch Lesson Detail when index changes
   const isFirstRun = useRef(true);
   useEffect(() => {
     if (isFirstRun.current) {
@@ -167,14 +171,56 @@ export const LearningPlayer: React.FC = () => {
     fetchLessonDetail();
   }, [currentLessonIdx]);
 
+  // Effect to get signed URL for the active lesson video
+  useEffect(() => {
+    const getSignedUrl = async () => {
+      setSignedVideoUrl(null);
+      setIsPreparingMetadata(true);
+
+      if (!activeLesson?.videoUrl) {
+        return;
+      }
+
+      // If it's not a Cloudinary URL, use as is (with HLS transform if needed)
+      if (!activeLesson.videoUrl.includes('cloudinary.com')) {
+        setSignedVideoUrl(getStreamingUrl(activeLesson.videoUrl));
+        return;
+      }
+
+      const publicId = extractPublicId(activeLesson.videoUrl);
+      if (!publicId) {
+        setSignedVideoUrl(getStreamingUrl(activeLesson.videoUrl));
+        return;
+      }
+
+      setIsSigningUrl(true);
+      try {
+        const url = await cloudinaryService.getSignedUrl(publicId);
+        setSignedVideoUrl(url);
+      } catch (error) {
+        console.error('Failed to sign video URL:', error);
+        setSignedVideoUrl(getStreamingUrl(activeLesson.videoUrl));
+      } finally {
+        setIsSigningUrl(false);
+      }
+    };
+
+    getSignedUrl();
+  }, [activeLesson?.videoUrl]);
+
   const currentLesson = course?.lessons?.[currentLessonIdx];
 
+  // Effect to initialize HLS player
   useEffect(() => {
-    if (activeLesson?.videoUrl && videoRef.current && !isLessonLoading) {
+    // Wait for all conditions: signed URL, video element, and not currently loading or signing
+    if (signedVideoUrl && videoRef.current && !isLessonLoading && !isSigningUrl) {
       const video = videoRef.current;
-      const hlsUrl = getStreamingUrl(activeLesson.videoUrl);
+      const videoUrl = signedVideoUrl;
+      const isHls = videoUrl.includes('.m3u8');
 
-      if (Hls.isSupported()) {
+      console.log(`[Player] Initializing ${isHls ? 'HLS' : 'Progressive'} playback:`, videoUrl);
+
+      if (isHls && Hls.isSupported()) {
         if (hlsRef.current) {
           hlsRef.current.destroy();
         }
@@ -183,19 +229,30 @@ export const LearningPlayer: React.FC = () => {
           maxBufferLength: 30,
           maxMaxBufferLength: 30,
           enableWorker: true,
+          xhrSetup: (xhr) => {
+            xhr.withCredentials = false; // Important for Cloudinary signed URLs
+          },
         });
 
         hls.attachMedia(video);
         hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-          hls.loadSource(hlsUrl);
+          hls.loadSource(videoUrl);
         });
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch((e) => console.log('Autoplay prevented:', e));
+          video.play().catch((e) => console.log('[Player] Autoplay prevented:', e));
+        });
+
+        hls.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
+          // If the level loaded has a valid duration, we consider metadata "almost" ready
+          if (data.details.totalduration > 0) {
+            setIsPreparingMetadata(false);
+          }
         });
 
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (data.fatal) {
+            console.error('[Player] Fatal HLS error:', data);
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
                 hls.startLoad();
@@ -211,9 +268,15 @@ export const LearningPlayer: React.FC = () => {
         });
 
         hlsRef.current = hls;
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = hlsUrl;
-        video.play().catch((e) => console.log('Autoplay prevented:', e));
+      } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native HLS support (Safari)
+        video.src = videoUrl;
+        video.play().catch((e) => console.log('[Player] Native autoplay prevented:', e));
+      } else {
+        // Normal MP4 fallback (if signature/transformation failed to produce m3u8)
+        console.warn('[Player] Falling back to progressive MP4 playback');
+        video.src = videoUrl;
+        video.play().catch((e) => console.log('[Player] Fallback autoplay prevented:', e));
       }
     }
 
@@ -224,11 +287,10 @@ export const LearningPlayer: React.FC = () => {
       }
       setIsResumed(false);
     };
-  }, [activeLesson?.id, activeLesson?.videoUrl, isLessonLoading]);
+  }, [signedVideoUrl, isLessonLoading, isSigningUrl, activeLesson?.id]);
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      // Restore settings from localStorage
       const savedVolume = localStorage.getItem('videoVolume');
       const savedRate = localStorage.getItem('videoPlaybackRate');
 
@@ -295,7 +357,6 @@ export const LearningPlayer: React.FC = () => {
     [id, currentLesson, videoRef, videoCompletedLessons, completedLessons]
   );
 
-  // Handle Rich Text lessons - auto complete video part
   useEffect(() => {
     if (activeLesson && !activeLesson.videoUrl && !videoCompletedLessons.has(activeLesson.id)) {
       syncProgress(true);
@@ -308,7 +369,6 @@ export const LearningPlayer: React.FC = () => {
     const currentTime = videoRef.current.currentTime;
     const duration = videoRef.current.duration;
 
-    // Sync every 15 seconds
     if (currentTime - lastSyncTimeRef.current > 10) {
       syncProgress();
       lastSyncTimeRef.current = currentTime;
@@ -381,7 +441,6 @@ export const LearningPlayer: React.FC = () => {
     <div
       className={`flex flex-col h-screen ${isDarkMode ? 'bg-slate-950 text-slate-50' : 'bg-slate-50 text-slate-900'} overflow-hidden transition-colors duration-300`}
     >
-      {/* Top Bar */}
       <header
         className={`h-16 shrink-0 flex items-center justify-between px-6 border-b ${isDarkMode ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-white shadow-sm'} z-20`}
       >
@@ -432,40 +491,58 @@ export const LearningPlayer: React.FC = () => {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
           <div className="max-w-5xl mx-auto p-6 lg:p-10">
-            {/* Video Player */}
             <div className="aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/5 relative group mb-8">
               {isLessonLoading ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 gap-4">
                   <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
                   <p className="text-slate-400 font-medium animate-pulse">Loading content...</p>
                 </div>
-              ) : activeLesson?.videoUrl ? (
-                <video
-                  ref={videoRef}
-                  key={activeLesson.id}
-                  className="w-full h-full object-contain"
-                  controls
-                  autoPlay
-                  onTimeUpdate={handleTimeUpdate}
-                  onLoadedMetadata={handleLoadedMetadata}
-                  onRateChange={handleRateChange}
-                  onVolumeChange={handleVolumeChange}
-                  onPause={() => syncProgress()}
-                />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-4 bg-slate-900">
-                  <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-2">
-                    <FileText className="w-10 h-10 text-slate-500" />
-                  </div>
-                  <p className="italic">This lesson contains reading material</p>
-                </div>
+                <>
+                  {activeLesson?.videoUrl && (
+                    <video
+                      ref={videoRef}
+                      key={activeLesson.id}
+                      className={`w-full h-full object-contain ${isSigningUrl || !signedVideoUrl ? 'hidden' : 'block'}`}
+                      controls
+                      autoPlay
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={(e) => {
+                        if (e.currentTarget.duration > 0) {
+                          setIsPreparingMetadata(false);
+                        }
+                        handleLoadedMetadata();
+                      }}
+                      onRateChange={handleRateChange}
+                      onVolumeChange={handleVolumeChange}
+                      onPause={() => syncProgress()}
+                    />
+                  )}
+
+                  {activeLesson?.videoUrl &&
+                    (isSigningUrl || !signedVideoUrl || isPreparingMetadata) && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 gap-4">
+                        <div className="w-8 h-8 border-3 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest animate-pulse">
+                          Securing Connection...
+                        </p>
+                      </div>
+                    )}
+
+                  {!activeLesson?.videoUrl && (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-4 bg-slate-900">
+                      <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-2">
+                        <FileText className="w-10 h-10 text-slate-500" />
+                      </div>
+                      <p className="italic">This lesson contains reading material</p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
-            {/* Lesson Info */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
               <div>
                 <div className="flex items-center gap-3 mb-2">
@@ -519,7 +596,6 @@ export const LearningPlayer: React.FC = () => {
               </div>
             </div>
 
-            {/* Tabs / Description */}
             <div className="space-y-12">
               <div className="border-b border-white/10 flex gap-8">
                 <button
@@ -605,7 +681,6 @@ export const LearningPlayer: React.FC = () => {
           </div>
         </main>
 
-        {/* Sidebar - Playlist */}
         <aside
           className={`${isSidebarOpen ? 'w-80 lg:w-96' : 'w-0'} shrink-0 border-l ${isDarkMode ? 'border-white/10 bg-slate-900/30' : 'border-slate-200 bg-slate-50'} flex flex-col transition-all duration-300 overflow-hidden relative`}
         >
@@ -653,7 +728,6 @@ export const LearningPlayer: React.FC = () => {
             ))}
           </div>
 
-          {/* Certificate Button Area */}
           {progressPercentage === 100 && (
             <div className="p-6 border-t border-white/10 bg-black/20 shrink-0">
               <button
@@ -687,7 +761,6 @@ export const LearningPlayer: React.FC = () => {
         />
       )}
 
-      {/* Certificate Confirmation Modal */}
       {showCertConfirmModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
           <div

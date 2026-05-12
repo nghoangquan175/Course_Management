@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
-import { User, Course, InstructorApplication, Enrollment } from '../models';
+import { User, Course, InstructorApplication, Enrollment, CourseEditRequest } from '../models';
+import { EditRequestStatus } from '../models/CourseEditRequest';
 import { Op } from 'sequelize';
+import { CourseCloneService } from '../services/CourseCloneService';
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
@@ -106,6 +108,76 @@ export const getAllUsers = async (req: Request, res: Response) => {
     res.json(users);
   } catch (error) {
     console.error('Error fetching all users:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+export const getEditRequests = async (req: Request, res: Response) => {
+  try {
+    const requests = await CourseEditRequest.findAll({
+      where: { status: 'PENDING' },
+      include: [
+        {
+          model: Course,
+          as: 'course',
+          attributes: ['id', 'name', 'version', 'thumbnailUrl'],
+        },
+        {
+          model: User,
+          as: 'instructor',
+          attributes: ['id', 'name', 'email'],
+        },
+      ],
+      order: [['createdAt', 'ASC']],
+    });
+
+    res.json(requests);
+  } catch (error) {
+    console.error('Error fetching edit requests:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const handleEditRequest = async (req: Request, res: Response) => {
+  try {
+    const { requestId } = req.params as { requestId: string };
+    const { status, adminNote } = req.body;
+
+    if (!['APPROVED', 'REJECTED'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const request = await CourseEditRequest.findByPk(requestId);
+    if (!request) {
+      return res.status(404).json({ message: 'Edit request not found' });
+    }
+
+    if (request.status !== 'PENDING') {
+      return res.status(400).json({ message: 'Request already handled' });
+    }
+
+    if (status === 'REJECTED') {
+      request.status = EditRequestStatus.REJECTED;
+      request.adminNote = adminNote || 'Rejected by administrator';
+      await request.save();
+
+      return res.json({ message: 'Request rejected successfully', request });
+    }
+
+    // If APPROVED
+    // Kích hoạt Deep Clone
+    const newVersion = await CourseCloneService.cloneCourse(request.courseId);
+
+    request.status = EditRequestStatus.APPROVED;
+    request.adminNote = adminNote || 'Approved by administrator';
+    await request.save();
+
+    res.json({
+      message: 'Request approved and course cloned successfully',
+      newVersion,
+      request,
+    });
+  } catch (error) {
+    console.error('Error handling edit request:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

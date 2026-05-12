@@ -14,8 +14,12 @@ import {
   Globe,
   AlertCircle,
   BookOpen,
+  FileEdit,
+  Clock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatDistanceToNow } from 'date-fns';
+import api from '../../utils/api';
 import { CreateCourseForm } from '../../pages/instructor/CreateCourseForm';
 import { CourseDetailView } from './CourseDetailView';
 import { CurriculumEditor } from './CurriculumEditor';
@@ -74,6 +78,16 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
   const [isWorkflowModalOpen, setIsWorkflowModalOpen] = useState(false);
   const [activeWorkflowAction, setActiveWorkflowAction] = useState<string | null>(null);
   const [courseToProcess, setCourseToProcess] = useState<string | null>(null);
+  const [isRequestEditModalOpen, setIsRequestEditModalOpen] = useState(false);
+  const [editReason, setEditReason] = useState('');
+  const [isSubmittingEditRequest, setIsSubmittingEditRequest] = useState(false);
+  const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
+  const [conflictingVersion, setConflictingVersion] = useState<any>(null);
+  const [adminSelectedRequest, setAdminSelectedRequest] = useState<any>(null);
+  const [isAdminHandleModalOpen, setIsAdminHandleModalOpen] = useState(false);
+  const [adminHandleAction, setAdminHandleAction] = useState<'APPROVE' | 'REJECT' | null>(null);
+  const [adminHandleNote, setAdminHandleNote] = useState('');
+  const [isAdminSubmitting, setIsAdminSubmitting] = useState(false);
 
   const {
     data: courses = [],
@@ -172,16 +186,87 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
     courseActions.mutate(
       {
         id: courseToProcess,
-        action: activeWorkflowAction,
+        action:
+          activeWorkflowAction === 'handleRequest'
+            ? adminHandleAction === 'APPROVE'
+              ? 'approve-request'
+              : 'reject-request'
+            : activeWorkflowAction,
+        data:
+          activeWorkflowAction === 'publish' && conflictingVersion
+            ? { forcePublish: true }
+            : activeWorkflowAction === 'handleRequest'
+              ? {
+                  requestId: adminSelectedRequest.id,
+                  status: adminHandleAction === 'APPROVE' ? 'APPROVED' : 'REJECTED',
+                  adminNote: adminHandleNote,
+                }
+              : undefined,
       },
       {
         onSuccess: () => {
           setIsWorkflowModalOpen(false);
+          setIsConflictModalOpen(false);
+          setIsAdminHandleModalOpen(false);
+          setConflictingVersion(null);
+          setAdminSelectedRequest(null);
+          setAdminHandleNote('');
           setActiveWorkflowAction(null);
           setCourseToProcess(null);
         },
+        onError: (error: any) => {
+          if (activeWorkflowAction === 'publish' && error.response?.status === 409) {
+            setConflictingVersion(error.response.data.publishedVersion);
+            setIsConflictModalOpen(true);
+            setIsWorkflowModalOpen(false);
+          }
+        },
       }
     );
+  };
+
+  const handleRequestEdit = async () => {
+    if (!courseToProcess || !editReason.trim()) {
+      toast.error('Please provide a reason for editing');
+      return;
+    }
+
+    setIsSubmittingEditRequest(true);
+    try {
+      const { instructorService } = await import('../../api/instructorService');
+      await instructorService.requestEdit(courseToProcess, editReason);
+      toast.success('Edit request submitted successfully');
+      setIsRequestEditModalOpen(false);
+      setEditReason('');
+      setCourseToProcess(null);
+      setActiveWorkflowAction(null);
+      refetchCourses();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to submit edit request');
+    } finally {
+      setIsSubmittingEditRequest(false);
+    }
+  };
+
+  const handleAdminRequestAction = async (action: 'APPROVE' | 'REJECT') => {
+    if (!adminSelectedRequest) return;
+
+    setIsAdminSubmitting(true);
+    try {
+      const { data } = await api.put(`/admin/edit-requests/${adminSelectedRequest.id}/handle`, {
+        status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED',
+        adminNote: adminHandleNote,
+      });
+      toast.success(data.message || 'Request handled successfully');
+      setIsAdminHandleModalOpen(false);
+      setAdminSelectedRequest(null);
+      setAdminHandleNote('');
+      refetchCourses();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to handle request');
+    } finally {
+      setIsAdminSubmitting(false);
+    }
   };
 
   const workflowConfigs: Record<
@@ -229,13 +314,6 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
       icon: XCircle,
       color: 'bg-amber-500',
       buttonText: 'Unpublish',
-    },
-    requestEdit: {
-      title: 'Request Edit',
-      description: 'Are you sure you want to request changes? Course will return to DRAFT.',
-      icon: AlertCircle,
-      color: 'bg-blue-600',
-      buttonText: 'Request Edit',
     },
   };
 
@@ -324,6 +402,9 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
                   Course Info
                 </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                  Version
+                </th>
                 {isAdmin && (
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
                     Instructor
@@ -396,6 +477,9 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                           </div>
                         </div>
                       </td>
+                      <td className="px-6 py-4">
+                        <div className="h-6 bg-white/5 rounded-lg w-12" />
+                      </td>
                       {isAdmin && (
                         <td className="px-6 py-4">
                           <div className="h-4 bg-white/5 rounded w-24" />
@@ -439,6 +523,11 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                             </p>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="px-2 py-0.5 rounded bg-white/5 text-slate-400 text-[10px] font-bold border border-white/5">
+                          v{course.version || '1.0.0'}
+                        </span>
                       </td>
                       {isAdmin && (
                         <td className="px-6 py-4 text-xs text-slate-300">
@@ -486,16 +575,18 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                                       >
                                         <BookOpen className="w-4 h-4" />
                                       </button>
-                                      <button
-                                        onClick={() => {
-                                          setView('edit');
-                                          setSelectedCourse(course);
-                                        }}
-                                        className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
-                                        title="Edit Info"
-                                      >
-                                        <Edit className="w-4 h-4" />
-                                      </button>
+                                      {course.version === 1 && (
+                                        <button
+                                          onClick={() => {
+                                            setView('edit');
+                                            setSelectedCourse(course);
+                                          }}
+                                          className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
+                                          title="Edit Info"
+                                        >
+                                          <Edit className="w-4 h-4" />
+                                        </button>
+                                      )}
                                       <button
                                         onClick={() => {
                                           setActiveWorkflowAction('submit');
@@ -534,18 +625,23 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                                     </button>
                                   )}
                                   {(course.status === 'PUBLISHED' ||
-                                    course.status === 'UNPUBLISHED') && (
-                                    <button
-                                      onClick={() => {
-                                        setActiveWorkflowAction('requestEdit');
-                                        setCourseToProcess(course.id);
-                                        setIsWorkflowModalOpen(true);
-                                      }}
-                                      className="p-2 hover:bg-blue-500/10 rounded-lg text-blue-500/50 hover:text-blue-500"
-                                      title="Request Edit"
-                                    >
-                                      <AlertCircle className="w-4 h-4" />
-                                    </button>
+                                    course.status === 'UNPUBLISHED') &&
+                                    !(course.editRequests && course.editRequests.length > 0) && (
+                                      <button
+                                        onClick={() => {
+                                          setCourseToProcess(course.id);
+                                          setIsRequestEditModalOpen(true);
+                                        }}
+                                        className="p-2 hover:bg-blue-500/10 rounded-lg text-blue-500/50 hover:text-blue-500 transition-all"
+                                        title="Request Edit"
+                                      >
+                                        <AlertCircle className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  {course.editRequests && course.editRequests.length > 0 && (
+                                    <span className="p-2 text-[10px] font-bold text-amber-500 flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                    </span>
                                   )}
                                 </>
                               ) : (
@@ -576,6 +672,18 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
                                         <XCircle className="w-4 h-4" />
                                       </button>
                                     </>
+                                  )}
+                                  {course.editRequests && course.editRequests.length > 0 && (
+                                    <button
+                                      onClick={() => {
+                                        setAdminSelectedRequest(course.editRequests[0]);
+                                        setIsAdminHandleModalOpen(true);
+                                      }}
+                                      className="p-2 hover:bg-amber-500/10 rounded-lg text-amber-500 hover:text-amber-400 transition-all flex items-center gap-2"
+                                      title="Review Edit Request"
+                                    >
+                                      <FileEdit className="w-4 h-4" />
+                                    </button>
                                   )}
                                   {(course.status === 'CONTENT_APPROVED' ||
                                     course.status === 'UNPUBLISHED') && (
@@ -700,10 +808,196 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
         </div>
       </Modal>
 
+      {/* Request Edit Specific Modal */}
+      <Modal
+        isOpen={isRequestEditModalOpen}
+        onClose={() => {
+          setIsRequestEditModalOpen(false);
+          setEditReason('');
+        }}
+        title="Request Course Edit"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => {
+                setIsRequestEditModalOpen(false);
+                setEditReason('');
+              }}
+              className="px-6 py-2 text-slate-300"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleRequestEdit}
+              disabled={isSubmittingEditRequest || !editReason.trim()}
+              className="px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg disabled:opacity-50"
+            >
+              {isSubmittingEditRequest ? 'Submitting...' : 'Submit Request'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex flex-col items-center py-2">
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
+              <AlertCircle className="w-6 h-6 text-blue-500" />
+            </div>
+            <p className="text-slate-400 text-sm text-center">
+              Please explain why you need to edit this course. Admin will review and create a new
+              DRAFT version for you.
+            </p>
+          </div>
+          <textarea
+            value={editReason}
+            onChange={(e) => setEditReason(e.target.value)}
+            placeholder="Describe the changes you want to make..."
+            className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+          />
+        </div>
+      </Modal>
+
+      {/* Publish Conflict Modal */}
+      <Modal
+        isOpen={isConflictModalOpen}
+        onClose={() => {
+          setIsConflictModalOpen(false);
+          setConflictingVersion(null);
+          setCourseToProcess(null);
+        }}
+        title="Publishing Conflict"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => {
+                setIsConflictModalOpen(false);
+                setConflictingVersion(null);
+                setCourseToProcess(null);
+              }}
+              className="px-6 py-2 text-slate-300"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                handleWorkflowAction();
+              }}
+              disabled={courseActions.isPending}
+              className="px-6 py-2 bg-amber-600 text-white rounded-xl text-sm font-bold shadow-lg disabled:opacity-50"
+            >
+              {courseActions.isPending ? 'Publishing...' : 'Unpublish Old & Publish New'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-sm text-amber-500">
+                  Another version is currently Published
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Course: <span className="text-white font-medium">{conflictingVersion?.name}</span>{' '}
+                  (v{conflictingVersion?.version}) is already online.
+                </p>
+                <p className="text-xs text-slate-400 mt-2 italic">
+                  Publishing this version will automatically unpublish the current one. Only one
+                  version can be active at a time.
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="text-sm text-slate-300">
+            Do you want to proceed and replace the current version with this one?
+          </p>
+        </div>
+      </Modal>
+
+      {/* Admin Handle Edit Request Modal */}
+      <Modal
+        isOpen={isAdminHandleModalOpen}
+        onClose={() => {
+          setIsAdminHandleModalOpen(false);
+          setAdminSelectedRequest(null);
+          setAdminHandleNote('');
+          setAdminHandleAction(null);
+        }}
+        title="Handle Edit Request"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setIsAdminHandleModalOpen(false)}
+              className="px-6 py-2 text-slate-300"
+            >
+              Cancel
+            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleAdminRequestAction('REJECT')}
+                disabled={isAdminSubmitting}
+                className="px-6 py-2 border border-red-500/20 text-red-500 rounded-xl text-sm font-bold hover:bg-red-500/5 transition-all disabled:opacity-50"
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => handleAdminRequestAction('APPROVE')}
+                disabled={isAdminSubmitting}
+                className="px-6 py-2 bg-green-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-green-500 transition-all disabled:opacity-50"
+              >
+                Approve
+              </button>
+            </div>
+          </div>
+        }
+      >
+        {adminSelectedRequest && (
+          <div className="space-y-6">
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0">
+                  <FileEdit className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-sm">Course Edit Request</p>
+                  <p className="text-xs text-slate-400 mt-1 italic">
+                    "{adminSelectedRequest.reason}"
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-2">
+                    Submitted{' '}
+                    {formatDistanceToNow(new Date(adminSelectedRequest.createdAt), {
+                      addSuffix: true,
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                Admin Note (Feedback)
+              </label>
+              <textarea
+                value={adminHandleNote}
+                onChange={(e) => setAdminHandleNote(e.target.value)}
+                placeholder="Provide feedback or reason for rejection/approval..."
+                className="w-full h-24 bg-white/5 border border-white/10 rounded-xl p-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <Modal
         isOpen={isWorkflowModalOpen}
         onClose={() => setIsWorkflowModalOpen(false)}
-        title={activeWorkflowAction ? workflowConfigs[activeWorkflowAction].title : ''}
+        title={
+          activeWorkflowAction && workflowConfigs[activeWorkflowAction]
+            ? workflowConfigs[activeWorkflowAction].title
+            : ''
+        }
         footer={
           <div className="flex justify-end gap-3">
             <button
@@ -715,18 +1009,18 @@ export const CourseManagement: React.FC<CourseManagementProps> = ({
             <button
               onClick={handleWorkflowAction}
               disabled={courseActions.isPending}
-              className={`px-6 py-2 ${activeWorkflowAction ? workflowConfigs[activeWorkflowAction].color : 'bg-indigo-600'} text-white rounded-xl text-sm font-bold shadow-lg disabled:opacity-50`}
+              className={`px-6 py-2 ${activeWorkflowAction && workflowConfigs[activeWorkflowAction] ? workflowConfigs[activeWorkflowAction].color : 'bg-indigo-600'} text-white rounded-xl text-sm font-bold shadow-lg disabled:opacity-50`}
             >
               {courseActions.isPending
                 ? 'Processing...'
-                : activeWorkflowAction
+                : activeWorkflowAction && workflowConfigs[activeWorkflowAction]
                   ? workflowConfigs[activeWorkflowAction].buttonText
                   : 'Confirm'}
             </button>
           </div>
         }
       >
-        {activeWorkflowAction && (
+        {activeWorkflowAction && workflowConfigs[activeWorkflowAction] && (
           <div className="flex flex-col items-center py-4">
             <div
               className={`w-16 h-16 rounded-full ${workflowConfigs[activeWorkflowAction].color}/10 flex items-center justify-center mb-4`}

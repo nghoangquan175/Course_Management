@@ -16,6 +16,7 @@ import { ExamPlayer } from '../pages/user/ExamPlayer';
 import { BecomeInstructor } from '../pages/user/BecomeInstructor';
 import { CertificateView } from '../pages/user/CertificateView';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
+import { PublicRoute } from '../components/auth/PublicRoute';
 
 export const router = createBrowserRouter([
   {
@@ -42,11 +43,19 @@ export const router = createBrowserRouter([
   },
   {
     path: '/login',
-    element: <LoginPage />,
+    element: (
+      <PublicRoute>
+        <LoginPage />
+      </PublicRoute>
+    ),
   },
   {
     path: '/admin/login',
-    element: <AdminLoginPage />,
+    element: (
+      <PublicRoute>
+        <AdminLoginPage />
+      </PublicRoute>
+    ),
   },
   {
     path: '/admin',
@@ -90,7 +99,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/register',
-    element: <RegisterPage />,
+    element: (
+      <PublicRoute>
+        <RegisterPage />
+      </PublicRoute>
+    ),
   },
   {
     path: '/activate/:token',
@@ -98,10 +111,18 @@ export const router = createBrowserRouter([
   },
   {
     path: '/forgot-password',
-    element: <ForgotPasswordPage />,
+    element: (
+      <PublicRoute>
+        <ForgotPasswordPage />
+      </PublicRoute>
+    ),
   },
   {
     path: '/reset-password/:token',
-    element: <ResetPasswordPage />,
+    element: (
+      <PublicRoute>
+        <ResetPasswordPage />
+      </PublicRoute>
+    ),
   },
 ]);

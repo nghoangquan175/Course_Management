@@ -29,7 +29,6 @@ router.post('/:id/restore', courseController.restoreCourse);
 // Workflow actions (Instructor/Admin)
 router.post('/:id/submit', courseController.submitForApproval);
 router.post('/:id/withdraw', courseController.withdrawCourse);
-router.post('/:id/request-edit', courseController.requestEdit);
 
 // Admin only actions
 router.post('/:id/approve', authorize('ADMIN'), courseController.approveCourse);

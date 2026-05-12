@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, BookOpen, Users, BarChart3, Bell, FileText } from 'lucide-react';
+import {
+  LayoutDashboard,
+  BookOpen,
+  Users,
+  BarChart3,
+  Bell,
+  FileText,
+  FileEdit,
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Modal } from '../../components/common/Modal';
@@ -11,6 +19,7 @@ import { CourseManagement } from '../../components/dashboard/CourseManagement';
 import { InstructorApplicationManagement } from '../../components/dashboard/InstructorApplicationManagement';
 import { AdminNotifications } from '../../components/dashboard/AdminNotifications';
 import { AdminUsersTab } from '../../components/dashboard/AdminUsersTab';
+import { AdminEditRequests } from '../../components/dashboard/AdminEditRequests';
 import { FullscreenLoader } from '../../components/common/FullscreenLoader';
 import { AnimatePresence } from 'framer-motion';
 
@@ -79,6 +88,7 @@ export const AdminDashboard: React.FC = () => {
     { id: 'courses', label: 'Courses', icon: <BookOpen className="w-5 h-5" /> },
     { id: 'users', label: 'Users', icon: <Users className="w-5 h-5" /> },
     { id: 'applications', label: 'Applications', icon: <FileText className="w-5 h-5" /> },
+    { id: 'edit-requests', label: 'Edit Requests', icon: <FileEdit className="w-5 h-5" /> },
     { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
   ];
 
@@ -108,6 +118,8 @@ export const AdminDashboard: React.FC = () => {
         return <AdminUsersTab />;
       case 'applications':
         return <InstructorApplicationManagement />;
+      case 'edit-requests':
+        return <AdminEditRequests />;
       case 'notifications':
         return <AdminNotifications />;
       case 'overview':

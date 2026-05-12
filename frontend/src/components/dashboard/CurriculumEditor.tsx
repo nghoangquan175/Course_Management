@@ -99,10 +99,11 @@ export const lessonSchema = z
     title: z.string().min(5, 'Lesson title must be at least 5 characters'),
     textContent: z.string().optional(),
     videoUrl: z.string().url('Invalid video URL').optional().or(z.string().length(0)),
+    isVideoSelected: z.boolean().optional(),
   })
   .refine(
     (data) => {
-      const hasVideo = data.videoUrl && data.videoUrl.trim().length > 0;
+      const hasVideo = (data.videoUrl && data.videoUrl.trim().length > 0) || data.isVideoSelected;
       const hasText =
         data.textContent && data.textContent.replace(/<[^>]*>/g, '').trim().length > 0;
       return hasVideo || hasText;
@@ -147,6 +148,7 @@ export const CurriculumEditor: React.FC<CurriculumEditorProps> = ({
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors },
   } = useForm<LessonFormValues>({
     resolver: zodResolver(lessonSchema),
@@ -154,8 +156,14 @@ export const CurriculumEditor: React.FC<CurriculumEditorProps> = ({
       title: '',
       textContent: '',
       videoUrl: '',
+      isVideoSelected: false,
     },
   });
+
+  // Sync selectedVideo state with form validation
+  useEffect(() => {
+    setValue('isVideoSelected', !!selectedVideo);
+  }, [selectedVideo, setValue]);
 
   const fetchLessons = React.useCallback(async () => {
     try {
@@ -233,15 +241,19 @@ export const CurriculumEditor: React.FC<CurriculumEditorProps> = ({
       if (selectedVideo) {
         setUploadProgress((prev) => ({ ...prev, video: 0 }));
 
-        // Fetch signature once for video folder
-        const videoSignature = await cloudinaryService.getSignature(`courses/${courseId}/lessons`);
+        // Fetch signature once for video folder with authenticated type
+        const videoSignature = await cloudinaryService.getSignature(
+          `courses/${courseId}/lessons`,
+          'authenticated'
+        );
 
         const videoResult = await cloudinaryService.uploadMedia(
           selectedVideo,
           'video',
           undefined, // Folder is already in signature
           (percent) => setUploadProgress((prev) => ({ ...prev, video: percent })),
-          videoSignature
+          videoSignature,
+          'authenticated'
         );
         videoUrl = videoResult.secure_url;
         videoDuration = Math.round(videoResult.duration);

@@ -63,7 +63,7 @@ export const useCourseActions = () => {
         case 'reject':
           return courseService.reject(id, data?.reason);
         case 'publish':
-          return courseService.publish(id);
+          return courseService.publish(id, data);
         case 'unpublish':
           return courseService.unpublish(id);
         case 'delete':

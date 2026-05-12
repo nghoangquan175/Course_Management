@@ -18,7 +18,8 @@ class Course extends Model {
   public categoryId!: string;
   public instructorId!: string;
   public status!: CourseStatus;
-  public version!: number;
+  declare version: number;
+  declare parentCourseId: string | null;
   public isLatest!: boolean;
   public totalStudents!: number;
   public rating!: number;
@@ -68,6 +69,14 @@ Course.init(
     version: {
       type: DataTypes.INTEGER,
       defaultValue: 1,
+    },
+    parentCourseId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'courses',
+        key: 'id',
+      },
     },
     isLatest: {
       type: DataTypes.BOOLEAN,

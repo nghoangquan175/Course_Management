@@ -73,8 +73,8 @@ export const courseService = {
     return response.data;
   },
 
-  publish: async (id: string) => {
-    const response = await api.post(`/courses/${id}/publish`);
+  publish: async (id: string, data?: any) => {
+    const response = await api.post(`/courses/${id}/publish`, data);
     return response.data;
   },
 
