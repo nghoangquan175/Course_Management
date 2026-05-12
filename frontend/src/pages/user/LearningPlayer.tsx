@@ -344,7 +344,7 @@ export const LearningPlayer: React.FC = () => {
     if (!id || isGeneratingCert) return;
 
     if (certificate) {
-      window.open(certificate.pdfUrl, '_blank');
+      window.open(`/certificate/${id}`, '_blank');
       return;
     }
 
@@ -353,7 +353,7 @@ export const LearningPlayer: React.FC = () => {
       const newCert = await certificateService.generateCertificate(id);
       setCertificate(newCert);
       toast.success('Certificate generated successfully!');
-      window.open(newCert.pdfUrl, '_blank');
+      window.open(`/certificate/${id}`, '_blank');
     } catch (error: any) {
       toast.error(
         error.response?.data?.message ||
@@ -727,7 +727,7 @@ export const LearningPlayer: React.FC = () => {
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 ) : (
                   <>
-                    Generate <ChevronRight className="w-4 h-4" />
+                    Receive <ChevronRight className="w-4 h-4" />
                   </>
                 )}
               </button>

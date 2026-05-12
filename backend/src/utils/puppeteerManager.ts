@@ -6,8 +6,14 @@ class PuppeteerManager {
   private static async getBrowser(): Promise<Browser> {
     if (!this.instance) {
       this.instance = await puppeteer.launch({
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+        ],
       });
 
       this.instance.on('disconnected', () => {
@@ -27,7 +33,7 @@ class PuppeteerManager {
         format: 'A4',
         landscape: true,
         printBackground: true,
-        margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
+        margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' },
       });
 
       return Buffer.from(pdfBuffer);

@@ -59,7 +59,14 @@ app.get('/', (req: Request, res: Response) => {
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   const status = err.status || 500;
-  const message = err.message || 'Something went wrong';
+
+  // In production, hide stack traces and internal error details for 500 errors
+  let message = err.message || 'Something went wrong';
+  if (process.env.NODE_ENV === 'production' && status === 500) {
+    console.error('INTERNAL SERVER ERROR:', err);
+    message = 'An internal server error occurred. Please try again later.';
+  }
+
   res.status(status).json({
     success: false,
     status,

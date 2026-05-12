@@ -6,15 +6,15 @@ import moment from 'moment';
 import { Readable } from 'stream';
 import cloudinary from '../config/cloudinary';
 import PuppeteerManager from '../utils/puppeteerManager';
-import { 
-  Certificate, 
-  Course, 
-  User, 
-  Lesson, 
-  Enrollment, 
-  UserProgress, 
-  Exam, 
-  ExamResult 
+import {
+  Certificate,
+  Course,
+  User,
+  Lesson,
+  Enrollment,
+  UserProgress,
+  Exam,
+  ExamResult,
 } from '../models';
 
 export const generateCertificate = async (req: Request, res: Response, next: NextFunction) => {
@@ -34,12 +34,12 @@ export const generateCertificate = async (req: Request, res: Response, next: Nex
     const course = await Course.findByPk(courseId, {
       include: [
         { model: User, as: 'instructor', attributes: ['id', 'name'] },
-        { 
-          model: Lesson, 
+        {
+          model: Lesson,
           as: 'lessons',
-          include: [{ model: Exam, as: 'exam' }]
-        }
-      ]
+          include: [{ model: Exam, as: 'exam' }],
+        },
+      ],
     });
 
     if (!course) return res.status(404).json({ message: 'Course not found' });
@@ -50,13 +50,13 @@ export const generateCertificate = async (req: Request, res: Response, next: Nex
 
     for (const lesson of lessons) {
       const videoProgress = await UserProgress.findOne({
-        where: { userId, courseId, lessonId: lesson.id }
+        where: { userId, courseId, lessonId: lesson.id },
       });
       const videoDone = videoProgress?.status === 'COMPLETED';
 
       if (lesson.exam) {
         const examResult = await ExamResult.findOne({
-          where: { userId, examId: lesson.exam.id, isPassed: true }
+          where: { userId, examId: lesson.exam.id, isPassed: true },
         });
         if (videoDone && examResult) completedCount++;
       } else {
@@ -65,9 +65,9 @@ export const generateCertificate = async (req: Request, res: Response, next: Nex
     }
 
     if (completedCount < totalLessons || totalLessons === 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Course not fully completed yet. Finish all lessons and pass all quizzes.',
-        progress: `${completedCount}/${totalLessons}`
+        progress: `${completedCount}/${totalLessons}`,
       });
     }
 
@@ -75,45 +75,62 @@ export const generateCertificate = async (req: Request, res: Response, next: Nex
     const student = await User.findByPk(userId);
     if (!student) return res.status(404).json({ message: 'Student not found' });
 
-    const certificateCode = `CERT-${moment().format('YYYYMMDD')}-${userId.substring(0, 4)}-${courseId.substring(0, 4)}`.toUpperCase();
+    const certificateCode =
+      `CERT-${moment().format('YYYYMMDD')}-${userId.substring(0, 4)}-${courseId.substring(0, 4)}`.toUpperCase();
     const issuedDate = moment().format('MMMM Do, YYYY');
 
     // 4. Compile HTML Template
     const templatePath = path.join(__dirname, '../templates/certificate.hbs');
     const templateHtml = fs.readFileSync(templatePath, 'utf8');
     const template = handlebars.compile(templateHtml);
-    
+
     const html = template({
       studentName: student.name,
       courseName: course.name,
       instructorName: course.instructor?.name || 'Instructor',
       issuedDate,
-      certificateCode
+      certificateCode,
     });
 
     // 5. Convert to PDF
-    const pdfBuffer = await PuppeteerManager.generatePDF(html);
+    let pdfBuffer: Buffer;
+    try {
+      pdfBuffer = await PuppeteerManager.generatePDF(html);
+    } catch (pdfError) {
+      console.error('PDF GENERATION ERROR:', pdfError);
+      return res.status(500).json({
+        message: 'Failed to generate PDF certificate. Please try again later.',
+      });
+    }
 
     // 6. Upload to Cloudinary using Stream
-    const uploadResult: any = await new Promise((resolve, reject) => {
-      const readable = new Readable();
-      readable.push(pdfBuffer);
-      readable.push(null);
+    let uploadResult: any;
+    try {
+      uploadResult = await new Promise((resolve, reject) => {
+        const readable = new Readable();
+        readable.push(pdfBuffer);
+        readable.push(null);
 
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'course_edu/certificates',
-          resource_type: 'raw',
-          public_id: `cert_${userId}_${courseId}`,
-          format: 'pdf'
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      readable.pipe(stream);
-    });
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'course_edu/certificates',
+            resource_type: 'raw',
+            public_id: `cert_${userId}_${courseId}`,
+            format: 'pdf',
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        readable.pipe(stream);
+      });
+    } catch (uploadError) {
+      console.error('CLOUDINARY UPLOAD ERROR:', uploadError);
+      return res.status(500).json({
+        message: 'Failed to upload certificate. Please try again later.',
+      });
+    }
 
     // 7. Save to DB
     const certificate = await Certificate.create({
@@ -124,14 +141,11 @@ export const generateCertificate = async (req: Request, res: Response, next: Nex
       certificateCode,
       studentNameSnap: student.name,
       courseTitleSnap: course.name,
-      issuedAt: new Date()
+      issuedAt: new Date(),
     });
 
     // 8. Mark Enrollment as COMPLETED
-    await Enrollment.update(
-      { status: 'COMPLETED' },
-      { where: { userId, courseId } }
-    );
+    await Enrollment.update({ status: 'COMPLETED' }, { where: { userId, courseId } });
 
     res.status(201).json(certificate);
   } catch (error) {

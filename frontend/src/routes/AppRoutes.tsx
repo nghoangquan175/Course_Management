@@ -14,6 +14,7 @@ import { PublicCourseDetail } from '../pages/user/PublicCourseDetail';
 import { LearningPlayer } from '../pages/user/LearningPlayer';
 import { ExamPlayer } from '../pages/user/ExamPlayer';
 import { BecomeInstructor } from '../pages/user/BecomeInstructor';
+import { CertificateView } from '../pages/user/CertificateView';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -78,6 +79,14 @@ export const router = createBrowserRouter([
   {
     path: '/exam/:lessonId',
     element: <ExamPlayer />,
+  },
+  {
+    path: '/certificate/:courseId',
+    element: (
+      <ProtectedRoute>
+        <CertificateView />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/register',
