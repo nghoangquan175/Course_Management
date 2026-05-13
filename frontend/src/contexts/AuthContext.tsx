@@ -32,7 +32,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const userRes = await authService.getProfile();
         setUser(userRes.data);
       } catch (error) {
-        console.log('No valid session found');
         // If refresh fails, clear everything
         localStorage.removeItem('accessToken');
         setAccessTokenState(null);

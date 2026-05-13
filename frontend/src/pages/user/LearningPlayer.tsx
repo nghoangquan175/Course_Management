@@ -218,8 +218,6 @@ export const LearningPlayer: React.FC = () => {
       const videoUrl = signedVideoUrl;
       const isHls = videoUrl.includes('.m3u8');
 
-      console.log(`[Player] Initializing ${isHls ? 'HLS' : 'Progressive'} playback:`, videoUrl);
-
       if (isHls && Hls.isSupported()) {
         if (hlsRef.current) {
           hlsRef.current.destroy();
@@ -237,10 +235,6 @@ export const LearningPlayer: React.FC = () => {
         hls.attachMedia(video);
         hls.on(Hls.Events.MEDIA_ATTACHED, () => {
           hls.loadSource(videoUrl);
-        });
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch((e) => console.log('[Player] Autoplay prevented:', e));
         });
 
         hls.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
@@ -271,12 +265,10 @@ export const LearningPlayer: React.FC = () => {
       } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS support (Safari)
         video.src = videoUrl;
-        video.play().catch((e) => console.log('[Player] Native autoplay prevented:', e));
       } else {
         // Normal MP4 fallback (if signature/transformation failed to produce m3u8)
         console.warn('[Player] Falling back to progressive MP4 playback');
         video.src = videoUrl;
-        video.play().catch((e) => console.log('[Player] Fallback autoplay prevented:', e));
       }
     }
 

@@ -74,19 +74,6 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
     },
   });
 
-  // Debug validation errors
-  useEffect(() => {
-    if (Object.keys(errors).length > 0) {
-      console.log('Detailed Validation Errors:', errors);
-      // Log specific question errors if they exist
-      if (errors.questions && Array.isArray(errors.questions)) {
-        errors.questions.forEach((qErr, idx) => {
-          if (qErr) console.log(`Question ${idx + 1} errors:`, qErr);
-        });
-      }
-    }
-  }, [errors]);
-
   const { fields, append, remove, insert } = useFieldArray({
     control,
     name: 'questions',
@@ -186,7 +173,6 @@ export const ExamEditor: React.FC<ExamEditorProps> = ({ lessonId, lessonTitle, o
           </button>
           <button
             onClick={handleSubmit(onSubmit, (err) => {
-              console.log('Form Errors:', err);
               toast.error('Please check all fields and try again.');
             })}
             disabled={isSaving}
